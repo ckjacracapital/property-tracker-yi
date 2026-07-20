@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Property Tracker</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Acquisitions &amp; Legals Tracker</h1>
+    <button id="new-btn">+ New property</button>
+  </header>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <main id="panels"></main>
+
+  <div id="modal-backdrop" class="hidden">
+    <form id="property-form" class="modal">
+      <h3 id="modal-title">New Property</h3>
+      <input type="hidden" id="f-id">
+
+      <div class="section-label">Property</div>
+      <label>Portfolio <input type="text" id="f-portfolio" placeholder="e.g. Portfolio A"></label>
+      <label>Property address <input type="text" id="f-propertyAddress" required></label>
+      <div class="row">
+        <label>Status <input type="text" id="f-status" placeholder="e.g. Under offer"></label>
+        <label>Bedrooms <input type="number" id="f-bedrooms" min="0"></label>
+      </div>
+      <div class="row">
+        <label>Property usage <input type="text" id="f-propertyUsage" placeholder="e.g. HMO, single let"></label>
+        <label>Pictures / floorplan link <input type="text" id="f-pictures" placeholder="URL"></label>
+      </div>
+      <div class="row checkboxes">
+        <label class="checkbox"><input type="checkbox" id="f-floorplan"> Floorplan done</label>
+        <label class="checkbox"><input type="checkbox" id="f-refurbRequired"> Refurb required</label>
+      </div>
+
+      <div class="section-label">Agent</div>
+      <div class="row">
+        <label>Agent name <input type="text" id="f-agentName"></label>
+        <label>Agent contact <input type="text" id="f-agentContact"></label>
+      </div>
+
+      <div class="section-label">Financials (£ unless noted)</div>
+      <div class="row">
+        <label>Targeted rent <input type="number" id="f-targetedRent"></label>
+        <label>Net yield (%) <input type="number" step="0.01" id="f-netYield"></label>
+      </div>
+      <div class="row">
+        <label>Valuation at 8% <input type="number" id="f-valuationAt8"></label>
+        <label>Total capital loan <input type="number" id="f-totalCapitalLoan"></label>
+      </div>
+      <div class="row">
+        <label>Purchase price <input type="number" id="f-purchasePrice"></label>
+        <label>Refurb cost <input type="number" id="f-refurbCost"></label>
+      </div>
+      <div class="row">
+        <label>Utilities <input type="number" id="f-utilities"></label>
+        <label>Certs <input type="number" id="f-certs"></label>
+      </div>
+      <div class="row">
+        <label>YI margin <input type="number" id="f-yiMargin"></label>
+        <label>Stamp duty <input type="number" id="f-stampDuty"></label>
+      </div>
+      <div class="row">
+        <label>Fees <input type="number" id="f-fees"></label>
+        <label>Legals <input type="number" id="f-legals"></label>
+      </div>
+      <label>Comms <input type="number" id="f-comms"></label>
+
+      <div class="section-label">Notes</div>
+      <label><textarea id="f-notes"></textarea></label>
+
+      <div class="modal-actions">
+        <button type="button" id="cancel-btn">Cancel</button>
+        <button type="submit" id="save-btn">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

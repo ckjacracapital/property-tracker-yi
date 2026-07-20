@@ -1,0 +1,12 @@
+{
+  "name": "property-tracker-netlify",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Property Tracker deployed on Netlify, using Netlify Blobs for storage.",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^2.8.1"
+  }
+}
