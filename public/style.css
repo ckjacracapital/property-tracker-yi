@@ -1,48 +1,103 @@
 :root {
-  --bg: #f4f5f7;
+  /* Jacra Capital brand palette, per brand-guidelines.pdf and applied examples */
+  --jacra-navy: #1e2b3a;      /* primary dark surface, as used in headers/footers */
+  --jacra-navy-deep: #1d1535; /* "Deep Purple" swatch */
+  --jacra-chartreuse: #d7ff00;/* accent, used sparingly */
+  --jacra-grey: #959491;      /* "Battleship Grey" */
+  --jacra-jasper: #c05738;    /* used for warnings/flags */
+  --jacra-khaki: #b6a993;
+
+  --bg: #f5f5f3;
   --card-bg: #ffffff;
-  --border: #dcdfe4;
-  --text: #1f2328;
-  --muted: #6b7280;
-  --accent: #4f46e5;
-  --done: #16a34a;
+  --border: #e1dfd8;
+  --text: #1e2b3a;
+  --muted: #6b6f76;
+  --accent: var(--jacra-chartreuse);
+  --accent-text: var(--jacra-navy);
+  --done: var(--jacra-navy);
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Work Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
+}
+
+h1, h2, h3, .brand-name {
+  font-family: "Work Sans", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  background: var(--jacra-navy);
+  border-bottom: 3px solid var(--jacra-chartreuse);
 }
 
-header h1 { font-size: 18px; margin: 0; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  height: 36px;
+  width: auto;
+  border-radius: 4px;
+  display: block;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.brand-name {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.brand-subtitle {
+  color: var(--jacra-chartreuse);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
 button {
   cursor: pointer;
   border: none;
   border-radius: 6px;
-  padding: 8px 14px;
+  padding: 9px 16px;
   font-size: 14px;
-  background: var(--accent);
-  color: #fff;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--jacra-chartreuse);
+  color: var(--jacra-navy);
+  transition: transform 0.1s ease;
 }
+
+button:hover { filter: brightness(0.95); }
+button:active { transform: scale(0.98); }
 
 button.secondary {
   background: #fff;
-  color: var(--text);
+  color: var(--jacra-navy);
   border: 1px solid var(--border);
+  font-weight: 500;
 }
+
+button.secondary:hover { background: #faf9f6; }
 
 .tabs {
   display: flex;
@@ -57,23 +112,26 @@ button.secondary {
   color: var(--muted);
   border: none;
   border-radius: 0;
-  padding: 12px 16px;
+  padding: 14px 16px;
   font-size: 14px;
-  border-bottom: 2px solid transparent;
+  font-weight: 500;
+  border-bottom: 3px solid transparent;
 }
 
 .tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-  font-weight: 600;
+  color: var(--jacra-navy);
+  border-bottom-color: var(--jacra-chartreuse);
+  font-weight: 700;
 }
 
 .tab-btn .tab-count {
-  background: #f1f2f5;
+  background: var(--bg);
+  color: var(--jacra-navy);
   border-radius: 10px;
   padding: 1px 7px;
   font-size: 11px;
   margin-left: 6px;
+  font-weight: 600;
 }
 
 main {
@@ -85,20 +143,25 @@ main {
 
 .section-heading {
   font-size: 13px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--muted);
+  letter-spacing: 0.04em;
+  color: var(--jacra-navy);
   margin: 0 0 12px;
+  padding-left: 10px;
+  border-left: 4px solid var(--jacra-chartreuse);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .section-heading .count {
-  background: #dfe1e6;
+  background: var(--bg);
   border-radius: 10px;
   padding: 1px 8px;
   font-size: 12px;
+  font-weight: 600;
+  color: var(--jacra-navy);
 }
 
 .section-block { margin-bottom: 28px; }
@@ -107,9 +170,11 @@ main {
 
 .portfolio-label {
   font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
+  font-weight: 700;
+  color: var(--jacra-navy);
   margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .cards {
@@ -126,19 +191,21 @@ main {
 
 .card {
   background: var(--card-bg);
-  border-radius: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
   padding: 10px 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  border-left: 3px solid var(--jacra-chartreuse);
 }
 
 .card.completed-card {
-  opacity: 0.85;
-  border-left: 3px solid var(--done);
+  opacity: 0.9;
+  border-left: 3px solid var(--jacra-navy);
 }
 
 .card h3 {
   margin: 0 0 4px;
   font-size: 14px;
+  font-weight: 600;
 }
 
 .card .subline {
@@ -156,9 +223,11 @@ main {
 }
 
 .card .figures span {
-  background: #f1f2f5;
+  background: var(--bg);
+  color: var(--jacra-navy);
   border-radius: 4px;
-  padding: 2px 6px;
+  padding: 2px 7px;
+  font-weight: 500;
 }
 
 .card .actions {
@@ -169,13 +238,13 @@ main {
 
 .card .actions button {
   font-size: 11px;
-  padding: 4px 8px;
+  padding: 5px 9px;
 }
 
 #modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(30, 43, 58, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -187,7 +256,8 @@ main {
 
 .modal {
   background: #fff;
-  border-radius: 8px;
+  border-radius: 10px;
+  border-top: 4px solid var(--jacra-chartreuse);
   padding: 20px;
   width: 440px;
   max-width: 100%;
@@ -198,11 +268,17 @@ main {
   overflow-y: auto;
 }
 
+.modal h3 {
+  color: var(--jacra-navy);
+  font-size: 16px;
+}
+
 .modal .section-label {
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--muted);
+  letter-spacing: 0.04em;
+  color: var(--jacra-navy);
   margin-top: 8px;
   border-top: 1px solid var(--border);
   padding-top: 8px;
@@ -222,6 +298,7 @@ main {
   font-size: 12px;
   color: var(--muted);
   gap: 4px;
+  font-weight: 500;
 }
 
 .modal label.checkbox {
@@ -232,10 +309,15 @@ main {
 
 .modal input, .modal textarea {
   font-size: 14px;
-  padding: 6px 8px;
+  padding: 7px 9px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
   font-family: inherit;
+}
+
+.modal input:focus, .modal textarea:focus {
+  outline: none;
+  border-color: var(--jacra-navy);
 }
 
 .modal input[type="checkbox"] { width: auto; }
