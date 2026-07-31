@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jacra | Refurb &amp; Payment</title>
+<link rel="icon" type="image/png" href="jacra-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-stage="refurb">
+  <header>
+    <div class="brand">
+      <img src="jacra-logo.png" alt="Jacra Capital" class="brand-logo">
+      <div class="brand-text">
+        <span class="brand-name">Jacra Capital</span>
+        <span class="brand-subtitle">Acquisitions &amp; Refurbishment Portal</span>
+      </div>
+    </div>
+    <button class="secondary" id="manage-portfolios-btn">Manage portfolios</button>
+  </header>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <main>
+    <div id="panels"></div>
+  </main>
+
+  <div id="modal-backdrop" class="hidden">
+    <form id="property-form" class="modal">
+      <h3 id="modal-title">Refurb &amp; Payment</h3>
+      <input type="hidden" id="f-id">
+
+      <div class="section-label">Property</div>
+      <p class="readonly-address" id="f-address-display"></p>
+
+      <div class="section-label">Contractor</div>
+      <div class="row">
+        <label>Contractor <input type="text" id="f-contractor"></label>
+        <label>Contractor agreement
+          <select id="f-contractorAgreement">
+            <option value=""></option>
+            <option>Yes</option>
+            <option>No</option>
+            <option>Pending</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="section-label">Refurbishment schedule (12 weeks)</div>
+      <div class="week-grid" id="week-grid"></div>
+
+      <div class="section-label">Payment schedule</div>
+      <div class="payment-grid" id="payment-grid"></div>
+      <p class="total-paid">Total paid: <span id="total-paid-display">£0</span></p>
+
+      <div class="section-label">Notes</div>
+      <label><textarea id="f-notes"></textarea></label>
+
+      <div class="modal-actions">
+        <button type="button" id="cancel-btn">Cancel</button>
+        <button type="submit" id="save-btn">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="portfolio-modal-backdrop" class="hidden">
+    <div class="modal">
+      <h3>Manage Portfolios</h3>
+      <div id="portfolio-list"></div>
+      <form id="portfolio-add-form" class="row">
+        <input type="text" id="new-portfolio-name" placeholder="New portfolio name" required>
+        <button type="submit">Add</button>
+      </form>
+      <div class="modal-actions"><button type="button" id="portfolio-modal-close">Close</button></div>
+    </div>
+  </div>
+
+  <script src="app-shared.js"></script>
+  <script src="refurb.js"></script>
+</body>
+</html>

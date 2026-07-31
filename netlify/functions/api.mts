@@ -1,129 +1,204 @@
 import type { Context, Config } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 
-// The four stages a property moves through, in order, matching the
-// Acquisitions & Legals Tracker sheet's tabs.
-const STAGES = ["acquisitions_legals", "refurb_payment", "due_diligence", "handed_over"];
+// The five stages a property moves through, in order, matching the
+// Refurb_Tracker_PAG_Style sheet's tabs.
+const STAGES = ["acquisitions", "refurb", "due_diligence", "handed_over", "inventory"];
 
-// Editable fields, matching the sheet's columns.
-const FIELDS = [
-  "portfolio", "propertyAddress", "status", "pictures", "floorplan", "refurbRequired",
-  "agentName", "agentContact", "bedrooms", "propertyUsage",
-  "targetedRent", "netYield", "valuationAt8", "totalCapitalLoan",
-  "purchasePrice", "refurbCost", "utilities", "certs", "yiMargin",
-  "stampDuty", "fees", "legals", "comms", "notes"
-];
+// Each stage keeps its own nested field group so a property's history from
+// earlier stages is preserved as it moves forward.
+const STAGE_GROUPS = ["acquisitions", "refurb", "dueDiligence", "handedOver", "inventory"];
+const CORE_FIELDS = ["propertyAddress", "bedrooms", "portfolioId"];
 
-const KEY = "properties";
+const PROPERTIES_KEY = "properties";
+const PORTFOLIOS_KEY = "portfolios";
 
 function propertiesStore() {
   return getStore("property-tracker");
 }
 
 async function loadProperties(): Promise<any[]> {
-  const data = await propertiesStore().get(KEY, { type: "json" });
+  const data = await propertiesStore().get(PROPERTIES_KEY, { type: "json" });
   return data || [];
 }
 
 async function saveProperties(properties: any[]) {
-  await propertiesStore().setJSON(KEY, properties);
+  await propertiesStore().setJSON(PROPERTIES_KEY, properties);
 }
 
-function applyFields(target: any, body: any) {
-  for (const field of FIELDS) {
-    if (body[field] !== undefined) target[field] = body[field];
+async function loadPortfolios(): Promise<any[]> {
+  const data = await propertiesStore().get(PORTFOLIOS_KEY, { type: "json" });
+  return data || [];
+}
+
+async function savePortfolios(portfolios: any[]) {
+  await propertiesStore().setJSON(PORTFOLIOS_KEY, portfolios);
+}
+
+function applyUpdate(property: any, body: any) {
+  for (const field of CORE_FIELDS) {
+    if (body[field] !== undefined) property[field] = body[field];
   }
+  for (const group of STAGE_GROUPS) {
+    if (body[group] && typeof body[group] === "object") {
+      property[group] = { ...property[group], ...body[group] };
+    }
+  }
+}
+
+function newProperty(body: any) {
+  const now = new Date().toISOString();
+  const property: any = {
+    id: crypto.randomUUID(),
+    stage: STAGES[0],
+    stageHistory: {},
+    createdAt: now,
+    updatedAt: now,
+    propertyAddress: "",
+    bedrooms: "",
+    portfolioId: null,
+    acquisitions: {},
+    refurb: {},
+    dueDiligence: {},
+    handedOver: {},
+    inventory: {}
+  };
+  applyUpdate(property, body);
+  return property;
+}
+
+async function handleProperties(req: Request, id: string, action: string) {
+  if (req.method === "GET" && !id) {
+    return Response.json(await loadProperties());
+  }
+
+  if (req.method === "POST" && !id) {
+    const body = await req.json();
+    if (!body.propertyAddress || !String(body.propertyAddress).trim()) {
+      return Response.json({ error: "propertyAddress is required" }, { status: 400 });
+    }
+    const properties = await loadProperties();
+    const property = newProperty(body);
+    properties.push(property);
+    await saveProperties(properties);
+    return Response.json(property, { status: 201 });
+  }
+
+  if (req.method === "PATCH" && id && !action) {
+    const body = await req.json();
+    const properties = await loadProperties();
+    const property = properties.find((p) => p.id === id);
+    if (!property) return Response.json({ error: "not found" }, { status: 404 });
+    applyUpdate(property, body);
+    property.updatedAt = new Date().toISOString();
+    await saveProperties(properties);
+    return Response.json(property);
+  }
+
+  if (req.method === "POST" && id && action === "complete") {
+    const properties = await loadProperties();
+    const property = properties.find((p) => p.id === id);
+    if (!property) return Response.json({ error: "not found" }, { status: 404 });
+    const idx = STAGES.indexOf(property.stage);
+    const now = new Date().toISOString();
+    property.stageHistory[property.stage] = now;
+    if (idx < STAGES.length - 1) property.stage = STAGES[idx + 1];
+    property.updatedAt = now;
+    await saveProperties(properties);
+    return Response.json(property);
+  }
+
+  if (req.method === "POST" && id && action === "reopen") {
+    const properties = await loadProperties();
+    const property = properties.find((p) => p.id === id);
+    if (!property) return Response.json({ error: "not found" }, { status: 404 });
+    if (property.stageHistory[property.stage]) {
+      delete property.stageHistory[property.stage];
+    } else {
+      const idx = STAGES.indexOf(property.stage);
+      if (idx > 0) {
+        const prev = STAGES[idx - 1];
+        delete property.stageHistory[prev];
+        property.stage = prev;
+      }
+    }
+    property.updatedAt = new Date().toISOString();
+    await saveProperties(properties);
+    return Response.json(property);
+  }
+
+  if (req.method === "DELETE" && id && !action) {
+    const properties = await loadProperties();
+    const next = properties.filter((p) => p.id !== id);
+    if (next.length === properties.length) return Response.json({ error: "not found" }, { status: 404 });
+    await saveProperties(next);
+    return new Response(null, { status: 204 });
+  }
+
+  return Response.json({ error: "not found" }, { status: 404 });
+}
+
+async function handlePortfolios(req: Request, id: string) {
+  if (req.method === "GET" && !id) {
+    return Response.json(await loadPortfolios());
+  }
+
+  if (req.method === "POST" && !id) {
+    const body = await req.json();
+    if (!body.name || !String(body.name).trim()) {
+      return Response.json({ error: "name is required" }, { status: 400 });
+    }
+    const portfolios = await loadPortfolios();
+    const portfolio = { id: crypto.randomUUID(), name: String(body.name).trim() };
+    portfolios.push(portfolio);
+    await savePortfolios(portfolios);
+    return Response.json(portfolio, { status: 201 });
+  }
+
+  if (req.method === "PATCH" && id) {
+    const body = await req.json();
+    const portfolios = await loadPortfolios();
+    const portfolio = portfolios.find((p) => p.id === id);
+    if (!portfolio) return Response.json({ error: "not found" }, { status: 404 });
+    if (body.name !== undefined) portfolio.name = String(body.name).trim();
+    await savePortfolios(portfolios);
+    return Response.json(portfolio);
+  }
+
+  if (req.method === "DELETE" && id) {
+    const portfolios = await loadPortfolios();
+    const next = portfolios.filter((p) => p.id !== id);
+    if (next.length === portfolios.length) return Response.json({ error: "not found" }, { status: 404 });
+    await savePortfolios(next);
+
+    const properties = await loadProperties();
+    let changed = false;
+    for (const property of properties) {
+      if (property.portfolioId === id) {
+        property.portfolioId = null;
+        changed = true;
+      }
+    }
+    if (changed) await saveProperties(properties);
+
+    return new Response(null, { status: 204 });
+  }
+
+  return Response.json({ error: "not found" }, { status: 404 });
 }
 
 export default async (req: Request, context: Context) => {
   const url = new URL(req.url);
   const parts = url.pathname.replace(/^\/api\//, "").split("/").filter(Boolean);
-
-  if (parts[0] !== "properties") {
-    return Response.json({ error: "not found" }, { status: 404 });
-  }
-
-  const id = parts[1];
-  const action = parts[2];
+  const resource = parts[0];
 
   try {
-    if (req.method === "GET" && !id) {
-      const properties = await loadProperties();
-      return Response.json(properties);
+    if (resource === "properties") {
+      return await handleProperties(req, parts[1], parts[2]);
     }
-
-    if (req.method === "POST" && !id) {
-      const body = await req.json();
-      if (!body.propertyAddress || !String(body.propertyAddress).trim()) {
-        return Response.json({ error: "propertyAddress is required" }, { status: 400 });
-      }
-      const properties = await loadProperties();
-      const now = new Date().toISOString();
-      const property: any = {
-        id: crypto.randomUUID(),
-        stage: STAGES[0],
-        stageHistory: {},
-        createdAt: now,
-        updatedAt: now
-      };
-      for (const field of FIELDS) property[field] = "";
-      applyFields(property, body);
-      properties.push(property);
-      await saveProperties(properties);
-      return Response.json(property, { status: 201 });
+    if (resource === "portfolios") {
+      return await handlePortfolios(req, parts[1]);
     }
-
-    if (req.method === "PATCH" && id && !action) {
-      const body = await req.json();
-      const properties = await loadProperties();
-      const property = properties.find((p) => p.id === id);
-      if (!property) return Response.json({ error: "not found" }, { status: 404 });
-      applyFields(property, body);
-      property.updatedAt = new Date().toISOString();
-      await saveProperties(properties);
-      return Response.json(property);
-    }
-
-    if (req.method === "POST" && id && action === "complete") {
-      const properties = await loadProperties();
-      const property = properties.find((p) => p.id === id);
-      if (!property) return Response.json({ error: "not found" }, { status: 404 });
-      const idx = STAGES.indexOf(property.stage);
-      const now = new Date().toISOString();
-      property.stageHistory[property.stage] = now;
-      if (idx < STAGES.length - 1) property.stage = STAGES[idx + 1];
-      property.updatedAt = now;
-      await saveProperties(properties);
-      return Response.json(property);
-    }
-
-    if (req.method === "POST" && id && action === "reopen") {
-      const properties = await loadProperties();
-      const property = properties.find((p) => p.id === id);
-      if (!property) return Response.json({ error: "not found" }, { status: 404 });
-      if (property.stageHistory[property.stage]) {
-        delete property.stageHistory[property.stage];
-      } else {
-        const idx = STAGES.indexOf(property.stage);
-        if (idx > 0) {
-          const prev = STAGES[idx - 1];
-          delete property.stageHistory[prev];
-          property.stage = prev;
-        }
-      }
-      property.updatedAt = new Date().toISOString();
-      await saveProperties(properties);
-      return Response.json(property);
-    }
-
-    if (req.method === "DELETE" && id && !action) {
-      const properties = await loadProperties();
-      const next = properties.filter((p) => p.id !== id);
-      if (next.length === properties.length) return Response.json({ error: "not found" }, { status: 404 });
-      await saveProperties(next);
-      return new Response(null, { status: 204 });
-    }
-
     return Response.json({ error: "not found" }, { status: 404 });
   } catch (err: any) {
     return Response.json({ error: err?.message || "server error" }, { status: 500 });

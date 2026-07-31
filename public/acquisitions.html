@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jacra | Acquisitions & Legals</title>
+<link rel="icon" type="image/png" href="jacra-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-stage="acquisitions">
+  <header>
+    <div class="brand">
+      <img src="jacra-logo.png" alt="Jacra Capital" class="brand-logo">
+      <div class="brand-text">
+        <span class="brand-name">Jacra Capital</span>
+        <span class="brand-subtitle">Acquisitions &amp; Refurbishment Portal</span>
+      </div>
+    </div>
+    <button class="secondary" id="manage-portfolios-btn">Manage portfolios</button>
+  </header>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <main>
+    <div class="page-actions">
+      <button id="new-btn">+ New property</button>
+    </div>
+    <div id="panels"></div>
+  </main>
+
+  <div id="modal-backdrop" class="hidden">
+    <form id="property-form" class="modal">
+      <h3 id="modal-title">New Property</h3>
+      <input type="hidden" id="f-id">
+
+      <div class="section-label">Property</div>
+      <label>Portfolio
+        <select id="f-portfolioId"></select>
+      </label>
+      <label>Property address <input type="text" id="f-propertyAddress" required></label>
+      <div class="row">
+        <label>Status
+          <select id="f-status">
+            <option value=""></option>
+            <option>Reviewing Numbers</option>
+            <option>Offer</option>
+            <option>Visit</option>
+            <option>Legals</option>
+            <option>Searches</option>
+            <option>List</option>
+            <option>Allocated</option>
+            <option>Listed</option>
+            <option>Needs Initial Checks</option>
+            <option>Pending SR</option>
+          </select>
+        </label>
+        <label>Bedrooms <input type="number" id="f-bedrooms" min="0"></label>
+      </div>
+      <div class="row">
+        <label>Property usage <input type="text" id="f-propertyUsage" placeholder="e.g. HMO, single let"></label>
+      </div>
+      <div class="row row-3">
+        <label>Pictures
+          <select id="f-pictures"><option value=""></option><option>Yes</option><option>No</option></select>
+        </label>
+        <label>Floorplan?
+          <select id="f-floorplan"><option value=""></option><option>Yes</option><option>No</option></select>
+        </label>
+        <label>Refurb required?
+          <select id="f-refurbRequired"><option value=""></option><option>Yes</option><option>No</option></select>
+        </label>
+      </div>
+
+      <div class="section-label">Agent</div>
+      <div class="row">
+        <label>Agent name <input type="text" id="f-agentName"></label>
+        <label>Agent contact <input type="text" id="f-agentContact"></label>
+      </div>
+
+      <div class="section-label">Financials (£ unless noted)</div>
+      <div class="row">
+        <label>Targeted rent <input type="number" id="f-targetedRent"></label>
+        <label>Net yield (%) <input type="number" step="0.01" id="f-netYield"></label>
+      </div>
+      <div class="row">
+        <label>Valuation at 8% <input type="number" id="f-valuationAt8"></label>
+        <label>Total capital loan <input type="number" id="f-totalCapitalLoan"></label>
+      </div>
+      <div class="row">
+        <label>Purchase price <input type="number" id="f-purchasePrice"></label>
+        <label>Refurb cost <input type="number" id="f-refurbCost"></label>
+      </div>
+      <div class="row">
+        <label>Utilities <input type="number" id="f-utilities"></label>
+        <label>Certs <input type="number" id="f-certs"></label>
+      </div>
+      <div class="row">
+        <label>YI margin <input type="number" id="f-yiMargin"></label>
+        <label>Stamp duty <input type="number" id="f-stampDuty"></label>
+      </div>
+      <div class="row">
+        <label>Fees <input type="number" id="f-fees"></label>
+        <label>Legals <input type="number" id="f-legals"></label>
+      </div>
+      <label>Comms <input type="number" id="f-comms"></label>
+
+      <div class="section-label">Notes</div>
+      <label><textarea id="f-notes"></textarea></label>
+
+      <div class="modal-actions">
+        <button type="button" id="cancel-btn">Cancel</button>
+        <button type="submit" id="save-btn">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="portfolio-modal-backdrop" class="hidden">
+    <div class="modal">
+      <h3>Manage Portfolios</h3>
+      <div id="portfolio-list"></div>
+      <form id="portfolio-add-form" class="row">
+        <input type="text" id="new-portfolio-name" placeholder="New portfolio name" required>
+        <button type="submit">Add</button>
+      </form>
+      <div class="modal-actions"><button type="button" id="portfolio-modal-close">Close</button></div>
+    </div>
+  </div>
+
+  <script src="app-shared.js"></script>
+  <script src="acquisitions.js"></script>
+</body>
+</html>

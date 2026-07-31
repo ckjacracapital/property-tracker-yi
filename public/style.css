@@ -119,6 +119,9 @@ button.secondary:hover { background: #faf9f6; }
   font-size: 14px;
   font-weight: 500;
   border-bottom: 3px solid transparent;
+  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
 }
 
 .tab-btn.active {
@@ -295,6 +298,10 @@ main {
   gap: 8px;
 }
 
+.modal .row.row-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .modal label {
   display: flex;
   flex-direction: column;
@@ -310,15 +317,16 @@ main {
   gap: 6px;
 }
 
-.modal input, .modal textarea {
+.modal input, .modal textarea, .modal select {
   font-size: 14px;
   padding: 7px 9px;
   border: 1px solid var(--border);
   border-radius: 6px;
   font-family: inherit;
+  background: #fff;
 }
 
-.modal input:focus, .modal textarea:focus {
+.modal input:focus, .modal textarea:focus, .modal select:focus {
   outline: none;
   border-color: var(--jacra-navy);
 }
@@ -332,7 +340,141 @@ main {
   margin-top: 8px;
 }
 
+.page-actions {
+  margin-bottom: 20px;
+}
+
+.readonly-address {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--jacra-navy);
+  margin: 0 0 4px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: var(--jacra-navy);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back-link:hover { text-decoration: underline; }
+
+.detail-card {
+  background: var(--card-bg);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--jacra-chartreuse);
+  padding: 20px 24px;
+  max-width: 720px;
+}
+
+.detail-card h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+/* Refurb & Payment: 12-week schedule and payment rows */
+
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.week-grid label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  color: var(--muted);
+  gap: 4px;
+  font-weight: 500;
+}
+
+.week-grid input {
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.payment-grid .row {
+  margin-bottom: 4px;
+}
+
+.total-paid {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jacra-navy);
+  margin: 4px 0 0;
+}
+
+/* Due Diligence checklist */
+
+.checklist-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.checklist-row:last-child { border-bottom: none; }
+
+.checklist-row span {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.checklist-row select {
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  min-width: 160px;
+}
+
+/* Manage-portfolios modal */
+
+.portfolio-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.portfolio-row input {
+  flex: 1;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+#portfolio-add-form {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+#portfolio-add-form input {
+  flex: 1;
+  font-size: 13px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+}
+
 @media (max-width: 600px) {
   .modal .row { grid-template-columns: 1fr; }
   .cards { grid-template-columns: 1fr; }
+  .week-grid { grid-template-columns: repeat(2, 1fr); }
 }

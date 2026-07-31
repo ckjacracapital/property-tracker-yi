@@ -1,81 +1,41 @@
-const STAGES = ['acquisitions_legals', 'refurb_payment', 'due_diligence', 'handed_over'];
-const STAGE_LABEL = {
-  acquisitions_legals: 'Acquisitions & Legals',
-  refurb_payment: 'Refurb & Payment',
-  due_diligence: 'Due Diligence',
-  handed_over: 'Handed Over'
-};
+const STAGE = 'acquisitions';
+const GROUP = 'acquisitions';
+
+const GROUP_FIELDS = [
+  'status', 'pictures', 'floorplan', 'refurbRequired', 'agentName', 'agentContact',
+  'propertyUsage', 'targetedRent', 'netYield', 'valuationAt8', 'totalCapitalLoan',
+  'purchasePrice', 'refurbCost', 'utilities', 'certs', 'yiMargin', 'stampDuty',
+  'fees', 'legals', 'comms', 'notes'
+];
 
 let properties = [];
-let activeTab = STAGES[0];
+let portfolios = [];
 
 const modalBackdrop = document.getElementById('modal-backdrop');
 const propertyForm = document.getElementById('property-form');
 const modalTitle = document.getElementById('modal-title');
+const portfolioSelect = document.getElementById('f-portfolioId');
 
-const EDIT_FIELDS = [
-  'portfolio', 'propertyAddress', 'status', 'pictures', 'floorplan', 'refurbRequired',
-  'agentName', 'agentContact', 'bedrooms', 'propertyUsage',
-  'targetedRent', 'netYield', 'valuationAt8', 'totalCapitalLoan',
-  'purchasePrice', 'refurbCost', 'utilities', 'certs', 'yiMargin',
-  'stampDuty', 'fees', 'legals', 'comms', 'notes'
-];
-
-async function fetchProperties() {
-  const res = await fetch('/api/properties');
-  properties = await res.json();
+async function loadAll() {
+  [properties, portfolios] = await Promise.all([fetchProperties(), fetchPortfolios()]);
+  renderNav(properties);
   render();
 }
 
-function isCompletedIn(property, stage) {
-  return Boolean(property.stageHistory && property.stageHistory[stage]);
-}
+window.onPortfoliosChanged = loadAll;
 
-function isActiveIn(property, stage) {
-  return property.stage === stage && !isCompletedIn(property, stage);
-}
-
-function groupByPortfolio(list) {
-  const groups = {};
-  for (const p of list) {
-    const key = (p.portfolio || '').trim() || 'Unassigned';
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(p);
-  }
-  return Object.keys(groups).sort().map(key => ({ portfolio: key, items: groups[key] }));
-}
-
-function renderTabs() {
-  const tabsEl = document.getElementById('tabs');
-  tabsEl.innerHTML = '';
-  for (const stage of STAGES) {
-    const activeCount = properties.filter(p => isActiveIn(p, stage)).length;
-    const btn = document.createElement('button');
-    btn.className = 'tab-btn' + (stage === activeTab ? ' active' : '');
-    btn.innerHTML = `${STAGE_LABEL[stage]}<span class="tab-count">${activeCount}</span>`;
-    btn.onclick = () => { activeTab = stage; render(); };
-    tabsEl.appendChild(btn);
-  }
-}
-
-function renderPanels() {
+function render() {
   const panelsEl = document.getElementById('panels');
   panelsEl.innerHTML = '';
-  for (const stage of STAGES) {
-    const panel = document.createElement('div');
-    panel.className = 'panel' + (stage === activeTab ? ' active' : '');
 
-    const activeItems = properties.filter(p => isActiveIn(p, stage));
-    const completedItems = properties.filter(p => isCompletedIn(p, stage));
+  const activeItems = properties.filter((p) => isActiveIn(p, STAGE));
+  const completedItems = properties.filter((p) => isCompletedIn(p, STAGE));
 
-    panel.appendChild(renderSection('Active', activeItems, stage, false));
-    panel.appendChild(renderSection('Completed', completedItems, stage, true));
-
-    panelsEl.appendChild(panel);
-  }
+  panelsEl.appendChild(renderSection('Active', activeItems, false));
+  panelsEl.appendChild(renderSection('Completed', completedItems, true));
 }
 
-function renderSection(title, items, stage, completed) {
+function renderSection(title, items, completed) {
   const block = document.createElement('div');
   block.className = 'section-block';
 
@@ -92,8 +52,7 @@ function renderSection(title, items, stage, completed) {
     return block;
   }
 
-  const groups = groupByPortfolio(items);
-  for (const group of groups) {
+  for (const group of groupByPortfolio(items, portfolios)) {
     const groupEl = document.createElement('div');
     groupEl.className = 'portfolio-group';
     const label = document.createElement('div');
@@ -103,36 +62,30 @@ function renderSection(title, items, stage, completed) {
 
     const cardsEl = document.createElement('div');
     cardsEl.className = 'cards';
-    for (const p of group.items) {
-      cardsEl.appendChild(renderCard(p, stage, completed));
-    }
+    for (const p of group.items) cardsEl.appendChild(renderCard(p, completed));
     groupEl.appendChild(cardsEl);
     block.appendChild(groupEl);
   }
   return block;
 }
 
-function renderCard(p, stage, completed) {
+function renderCard(p, completed) {
+  const g = p[GROUP] || {};
   const el = document.createElement('div');
   el.className = 'card' + (completed ? ' completed-card' : '');
 
-  const subBits = [p.status, p.propertyUsage, p.bedrooms ? `${p.bedrooms} bed` : ''].filter(Boolean).join(' · ');
+  const subBits = [g.status, g.propertyUsage, p.bedrooms ? `${p.bedrooms} bed` : ''].filter(Boolean).join(' · ');
   const figures = [];
-  if (p.purchasePrice) figures.push(`£${Number(p.purchasePrice).toLocaleString()} purchase`);
-  if (p.targetedRent) figures.push(`£${Number(p.targetedRent).toLocaleString()} pcm rent`);
-  if (p.netYield) figures.push(`${p.netYield}% yield`);
-  if (p.agentName) figures.push(p.agentName);
+  if (g.purchasePrice) figures.push(`£${Number(g.purchasePrice).toLocaleString()} purchase`);
+  if (g.targetedRent) figures.push(`£${Number(g.targetedRent).toLocaleString()} pcm rent`);
+  if (g.netYield) figures.push(`${g.netYield}% yield`);
+  if (g.agentName) figures.push(g.agentName);
 
-  el.innerHTML = `
-    <h3></h3>
-    <p class="subline"></p>
-    <div class="figures"></div>
-    <div class="actions"></div>
-  `;
+  el.innerHTML = `<h3></h3><p class="subline"></p><div class="figures"></div><div class="actions"></div>`;
   el.querySelector('h3').textContent = p.propertyAddress || '(no address)';
   el.querySelector('.subline').textContent = subBits;
   const figuresEl = el.querySelector('.figures');
-  figures.forEach(f => {
+  figures.forEach((f) => {
     const span = document.createElement('span');
     span.textContent = f;
     figuresEl.appendChild(span);
@@ -141,7 +94,7 @@ function renderCard(p, stage, completed) {
   const actions = el.querySelector('.actions');
 
   if (completed) {
-    const when = p.stageHistory[stage] ? new Date(p.stageHistory[stage]).toLocaleDateString() : '';
+    const when = p.stageHistory[STAGE] ? new Date(p.stageHistory[STAGE]).toLocaleDateString() : '';
     const doneNote = document.createElement('span');
     doneNote.className = 'subline';
     doneNote.style.margin = '0';
@@ -154,9 +107,8 @@ function renderCard(p, stage, completed) {
     reopenBtn.onclick = () => reopen(p.id);
     actions.appendChild(reopenBtn);
   } else {
-    const nextLabel = stage === 'handed_over' ? 'Mark complete' : `Complete → ${STAGE_LABEL[STAGES[STAGES.indexOf(stage) + 1]]}`;
     const completeBtn = document.createElement('button');
-    completeBtn.textContent = nextLabel;
+    completeBtn.textContent = 'Complete → Refurb & Payment';
     completeBtn.onclick = () => completeStage(p.id);
     actions.appendChild(completeBtn);
 
@@ -176,37 +128,34 @@ function renderCard(p, stage, completed) {
   return el;
 }
 
-function render() {
-  renderTabs();
-  renderPanels();
-}
-
 async function completeStage(id) {
   await fetch(`/api/properties/${id}/complete`, { method: 'POST' });
-  fetchProperties();
+  loadAll();
 }
 
 async function reopen(id) {
   await fetch(`/api/properties/${id}/reopen`, { method: 'POST' });
-  fetchProperties();
+  loadAll();
 }
 
 async function deleteProperty(id) {
   if (!confirm('Delete this property record?')) return;
   await fetch(`/api/properties/${id}`, { method: 'DELETE' });
-  fetchProperties();
+  loadAll();
 }
 
 function openModal(property) {
   propertyForm.reset();
+  populatePortfolioSelect(portfolioSelect, portfolios, property ? property.portfolioId : '');
   document.getElementById('f-id').value = property ? property.id : '';
   modalTitle.textContent = property ? 'Edit Property' : 'New Property';
   if (property) {
-    for (const field of EDIT_FIELDS) {
+    document.getElementById('f-propertyAddress').value = property.propertyAddress || '';
+    document.getElementById('f-bedrooms').value = property.bedrooms || '';
+    const g = property[GROUP] || {};
+    for (const field of GROUP_FIELDS) {
       const el = document.getElementById('f-' + field);
-      if (!el) continue;
-      if (el.type === 'checkbox') el.checked = Boolean(property[field]);
-      else el.value = property[field] || '';
+      if (el) el.value = g[field] || '';
     }
   }
   modalBackdrop.classList.remove('hidden');
@@ -222,12 +171,17 @@ document.getElementById('cancel-btn').onclick = closeModal;
 propertyForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = document.getElementById('f-id').value;
-  const payload = {};
-  for (const field of EDIT_FIELDS) {
+  const group = {};
+  for (const field of GROUP_FIELDS) {
     const el = document.getElementById('f-' + field);
-    if (!el) continue;
-    payload[field] = el.type === 'checkbox' ? el.checked : el.value;
+    if (el) group[field] = el.value;
   }
+  const payload = {
+    propertyAddress: document.getElementById('f-propertyAddress').value,
+    bedrooms: document.getElementById('f-bedrooms').value,
+    portfolioId: portfolioSelect.value || null,
+    [GROUP]: group
+  };
   if (id) {
     await fetch(`/api/properties/${id}`, {
       method: 'PATCH',
@@ -240,10 +194,9 @@ propertyForm.addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    activeTab = STAGES[0];
   }
   closeModal();
-  fetchProperties();
+  loadAll();
 });
 
-fetchProperties();
+loadAll();
