@@ -23,7 +23,7 @@ body {
   margin: 0;
   font-family: "Work Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg);
-  background-image: url("assets/paper-texture.jpg");
+  background-image: url("paper-texture.jpg");
   background-repeat: repeat;
   background-size: 420px auto;
   color: var(--text);
