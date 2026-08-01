@@ -7,6 +7,7 @@ const GROUP_FIELDS = [
   'purchasePrice', 'refurbCost', 'utilities', 'certs', 'yiMargin', 'stampDuty',
   'fees', 'legals', 'comms', 'notes'
 ];
+const CHECKBOX_FIELDS = ['numbersConfirmed', 'priority'];
 
 let properties = [];
 let portfolios = [];
@@ -72,10 +73,12 @@ function renderSection(title, items, completed) {
 function renderCard(p, completed) {
   const g = p[GROUP] || {};
   const el = document.createElement('div');
-  el.className = 'card' + (completed ? ' completed-card' : '');
+  el.className = 'card' + (completed ? ' completed-card' : '') + (g.priority ? ' priority-card' : '');
 
   const subBits = [g.status, g.propertyUsage, p.bedrooms ? `${p.bedrooms} bed` : ''].filter(Boolean).join(' · ');
   const figures = [];
+  if (g.priority) figures.push('★ Priority');
+  if (g.numbersConfirmed) figures.push('Numbers confirmed');
   if (g.purchasePrice) figures.push(`£${Number(g.purchasePrice).toLocaleString()} purchase`);
   if (g.targetedRent) figures.push(`£${Number(g.targetedRent).toLocaleString()} pcm rent`);
   if (g.netYield) figures.push(`${g.netYield}% yield`);
@@ -157,6 +160,10 @@ function openModal(property) {
       const el = document.getElementById('f-' + field);
       if (el) el.value = g[field] || '';
     }
+    for (const field of CHECKBOX_FIELDS) {
+      const el = document.getElementById('f-' + field);
+      if (el) el.checked = Boolean(g[field]);
+    }
   }
   modalBackdrop.classList.remove('hidden');
 }
@@ -175,6 +182,10 @@ propertyForm.addEventListener('submit', async (e) => {
   for (const field of GROUP_FIELDS) {
     const el = document.getElementById('f-' + field);
     if (el) group[field] = el.value;
+  }
+  for (const field of CHECKBOX_FIELDS) {
+    const el = document.getElementById('f-' + field);
+    if (el) group[field] = el.checked;
   }
   const payload = {
     propertyAddress: document.getElementById('f-propertyAddress').value,

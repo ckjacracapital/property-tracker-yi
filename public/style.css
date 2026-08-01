@@ -208,6 +208,12 @@ main {
   border-left: 3px solid var(--jacra-navy);
 }
 
+.card.priority-card {
+  background: #fff6cc;
+  border: 1px solid #e8d27a;
+  border-left: 3px solid #e8c93a;
+}
+
 .card h3 {
   margin: 0 0 4px;
   font-size: 14px;
