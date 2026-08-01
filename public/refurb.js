@@ -197,6 +197,7 @@ function closeModal() {
 }
 
 document.getElementById('new-btn').onclick = () => openModal(null);
+document.getElementById('export-btn').onclick = () => { window.location.href = '/api/export/refurb'; };
 document.getElementById('cancel-btn').onclick = closeModal;
 
 propertyForm.addEventListener('submit', async (e) => {

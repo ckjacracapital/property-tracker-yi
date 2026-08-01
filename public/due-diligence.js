@@ -70,6 +70,7 @@ function closeModal() {
 }
 
 document.getElementById('new-btn').onclick = openModal;
+document.getElementById('export-btn').onclick = () => { window.location.href = '/api/export/due_diligence'; };
 document.getElementById('cancel-btn').onclick = closeModal;
 
 propertyForm.addEventListener('submit', async (e) => {

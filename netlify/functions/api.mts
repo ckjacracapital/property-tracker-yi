@@ -176,6 +176,37 @@ function checkWritePermission(session: any, body: any): boolean {
   return true;
 }
 
+// Matches DD_ITEMS in public/app-shared.js — kept as a separate copy here
+// since this runs server-side for CSV export, not loaded as a client script.
+const DD_ITEMS: [string, string][] = [
+  ["loanAgreement", "Loan Agreement"], ["ch1", "CH1"], ["beforePhotos", "Before Photos"],
+  ["afterPhotos", "After Photos"], ["leases", "Leases"], ["titlePlan", "Title Plan"],
+  ["titleReport", "Title Report"], ["insurance", "Insurance"], ["fra", "FRA"],
+  ["asbestos", "Asbestos"], ["gasCert", "Gas Cert"], ["eicr", "EICR"], ["epc", "EPC"],
+  ["certificateOfTitle", "Certificate of Title"], ["sdlt5", "SDLT5"], ["spa", "SPA"],
+  ["externalPlans", "External Plans"], ["internalPlans", "Internal Plans"],
+  ["workingDrawings", "Working Drawings"], ["agentsParticulars", "Agent's Particulars"],
+  ["contractorAgreements", "Contractor Agreements"], ["technicalSurveys", "Technical Surveys"],
+  ["applicableReports", "Applicable Reports"], ["costPlan", "Cost Plan"],
+  ["applicableInvoices", "Applicable Invoices"], ["buildingContract", "Building Contract"],
+  ["warranties", "Warranties"], ["buildingControl", "Building Control"],
+  ["operatorSignoff", "Operator Signoff"], ["rpSignoff", "RP Signoff"],
+  ["scheduleOfRents", "Schedule of Rents"], ["aflWithAllium", "AFL with Allium"],
+  ["mortgageRegister", "Mortgage Register"]
+];
+
+function csvEscape(value: any): string {
+  const str = value === null || value === undefined ? "" : String(value);
+  if (/[",\n\r]/.test(str)) return '"' + str.replace(/"/g, '""') + '"';
+  return str;
+}
+
+function toCsv(headers: string[], rows: any[][]): string {
+  const lines = [headers.map(csvEscape).join(",")];
+  for (const row of rows) lines.push(row.map(csvEscape).join(","));
+  return lines.join("\r\n");
+}
+
 function isRelevantToStage(property: any, stageId: string): boolean {
   if (stageId === "acquisitions") return property.stage === "acquisitions" || Boolean(property.stageHistory?.acquisitions);
   if (stageId === "refurb") return property.stage === "refurb";
@@ -520,6 +551,95 @@ async function handleStaff(req: Request, id: string, session: any) {
   return Response.json({ error: "not found" }, { status: 404 });
 }
 
+async function handleExport(stage: string, session: any) {
+  if (!ALL_STAGE_IDS.includes(stage)) return Response.json({ error: "not found" }, { status: 404 });
+  if (!stageAllowed(session, stage)) return Response.json({ error: "forbidden" }, { status: 403 });
+
+  const [properties, portfolios] = await Promise.all([loadProperties(), loadPortfolios()]);
+  const portfolioNames: Record<string, string> = {};
+  for (const p of portfolios) portfolioNames[p.id] = p.name;
+  const portfolioOf = (p: any) => (p.portfolioId && portfolioNames[p.portfolioId]) || "Unassigned";
+  const relevant = properties.filter((p) => isRelevantToStage(p, stage));
+
+  let headers: string[];
+  let rows: any[][];
+
+  if (stage === "acquisitions") {
+    headers = [
+      "Portfolio", "Property Address", "Bedrooms", "Status", "Pictures", "Floorplan", "Refurb Required",
+      "Numbers Confirmed", "Priority", "Agent Name", "Agent Contact", "Property Usage", "Targeted Rent",
+      "Net Yield", "Valuation at 8%", "Total Capital Loan", "Purchase Price", "Refurb Cost", "Utilities",
+      "Certs", "YI Margin", "Stamp Duty", "Fees", "Legals", "Comms", "Notes", "Stage Status", "Completed Date"
+    ];
+    rows = relevant.map((p) => {
+      const g = p.acquisitions || {};
+      return [
+        portfolioOf(p), p.propertyAddress, p.bedrooms, g.status, g.pictures, g.floorplan, g.refurbRequired,
+        g.numbersConfirmed ? "Yes" : "", g.priority ? "Yes" : "", g.agentName, g.agentContact, g.propertyUsage,
+        g.targetedRent, g.netYield, g.valuationAt8, g.totalCapitalLoan, g.purchasePrice, g.refurbCost,
+        g.utilities, g.certs, g.yiMargin, g.stampDuty, g.fees, g.legals, g.comms, g.notes,
+        p.stageHistory?.acquisitions ? "Completed" : "Active", p.stageHistory?.acquisitions || ""
+      ];
+    });
+  } else if (stage === "refurb") {
+    const weekHeaders = Array.from({ length: 12 }, (_, i) => `Wk ${i + 1}`);
+    const payHeaders: string[] = [];
+    for (let i = 1; i <= 6; i++) payHeaders.push(`Pay ${i} Date`, `Pay ${i} £`);
+    headers = [
+      "Portfolio", "Property Address", "Bedrooms", "Contractor", "Contractor Agreement",
+      ...weekHeaders, ...payHeaders, "Total Paid", "Notes", "Stage Status", "Completed Date"
+    ];
+    rows = relevant.map((p) => {
+      const g = p.refurb || {};
+      const weeks = g.weeks || [];
+      const payments = g.payments || [];
+      const weekVals = Array.from({ length: 12 }, (_, i) => weeks[i] || "");
+      const payVals: any[] = [];
+      let total = 0;
+      for (let i = 0; i < 6; i++) {
+        const pay = payments[i] || {};
+        payVals.push(pay.date || "", pay.amount || "");
+        total += Number(pay.amount) || 0;
+      }
+      return [
+        portfolioOf(p), p.propertyAddress, p.bedrooms, g.contractor, g.contractorAgreement,
+        ...weekVals, ...payVals, total, g.notes,
+        p.stageHistory?.refurb ? "Completed" : "Active", p.stageHistory?.refurb || ""
+      ];
+    });
+  } else if (stage === "due_diligence") {
+    headers = ["Portfolio", "Property Address", ...DD_ITEMS.map(([, label]) => label), "Notes", "Progress", "Handed Over"];
+    rows = relevant.map((p) => {
+      const g = p.dueDiligence || {};
+      const done = DD_ITEMS.filter(([key]) => g[key] === "Yes" || g[key] === "AFL with Allium").length;
+      return [
+        portfolioOf(p), p.propertyAddress, ...DD_ITEMS.map(([key]) => g[key] || ""),
+        g.notes, `${done} / ${DD_ITEMS.length}`, p.reachedHandedOver ? "Yes" : "No"
+      ];
+    });
+  } else if (stage === "handed_over") {
+    headers = ["Portfolio", "Property Address", "Bedrooms", "Date of Handover", "Handover Status", "Notes"];
+    rows = relevant.map((p) => {
+      const g = p.handedOver || {};
+      return [portfolioOf(p), p.propertyAddress, p.bedrooms, g.dateOfHandover, g.handoverStatus, g.notes];
+    });
+  } else {
+    headers = ["Portfolio", "Property Address", "Notes"];
+    rows = relevant.map((p) => {
+      const g = p.inventory || {};
+      return [portfolioOf(p), p.propertyAddress, g.notes];
+    });
+  }
+
+  return new Response(toCsv(headers, rows), {
+    status: 200,
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${stage}-export.csv"`
+    }
+  });
+}
+
 export default async (req: Request, context: Context) => {
   const url = new URL(req.url);
   const parts = url.pathname.replace(/^\/api\//, "").split("/").filter(Boolean);
@@ -536,6 +656,9 @@ export default async (req: Request, context: Context) => {
 
     if (resource === "staff") {
       return await handleStaff(req, parts[1], session);
+    }
+    if (resource === "export") {
+      return await handleExport(parts[1], session);
     }
     if (resource === "properties") {
       return await handleProperties(req, parts[1], parts[2], session);
