@@ -480,6 +480,97 @@ main {
   font-family: inherit;
 }
 
+/* Login page */
+
+body.login-page {
+  margin: 0;
+}
+
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: 360px;
+  text-align: left;
+  align-items: stretch;
+}
+
+.login-card h3 {
+  margin: 4px 0 0;
+  color: var(--jacra-navy);
+  font-size: 20px;
+}
+
+.login-logo {
+  height: 44px;
+  width: auto;
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.login-error {
+  color: var(--jacra-jasper);
+  font-size: 13px;
+  margin: -4px 0 0;
+}
+
+.login-error.hidden {
+  display: none;
+}
+
+/* Staff management */
+
+.staff-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.staff-row .staff-name {
+  font-weight: 600;
+  font-size: 13px;
+  min-width: 120px;
+}
+
+.staff-row .stage-checks {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.staff-row .stage-checks label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+}
+
+.stage-checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.stage-checkbox-list label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
 @media (max-width: 600px) {
   .modal .row { grid-template-columns: 1fr; }
   .cards { grid-template-columns: 1fr; }

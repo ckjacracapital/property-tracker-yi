@@ -40,6 +40,8 @@ function updateTotalPaid() {
 }
 
 async function loadAll() {
+  const me = await initAuth();
+  if (!me) return;
   [properties, portfolios] = await Promise.all([fetchProperties(), fetchPortfolios()]);
   renderNav(properties);
   render();
@@ -141,11 +143,7 @@ function renderCard(p, completed) {
     actions.appendChild(editBtn);
   }
 
-  const delBtn = document.createElement('button');
-  delBtn.className = 'secondary';
-  delBtn.textContent = 'Delete';
-  delBtn.onclick = () => deleteProperty(p.id);
-  actions.appendChild(delBtn);
+  appendDeleteButton(actions, () => deleteProperty(p.id));
 
   return el;
 }

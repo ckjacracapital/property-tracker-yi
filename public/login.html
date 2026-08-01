@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jacra | Log In</title>
+<link rel="icon" type="image/png" href="jacra-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+  <div class="login-wrap">
+    <form id="login-form" class="modal login-card">
+      <img src="jacra-logo.png" alt="Jacra Capital" class="login-logo">
+      <h3>Jacra Capital</h3>
+      <p class="subline" style="margin-top:-8px;">Acquisitions &amp; Refurbishment Portal</p>
+
+      <label>Username <input type="text" id="f-username" autocomplete="username" required></label>
+      <label>Password <input type="password" id="f-password" autocomplete="current-password" required></label>
+
+      <p class="login-error hidden" id="login-error"></p>
+
+      <div class="modal-actions">
+        <button type="submit" id="login-btn">Log in</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="login.js"></script>
+</body>
+</html>

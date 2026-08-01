@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jacra | Due Diligence Checklist</title>
+<title>Jacra | Manage Staff</title>
 <link rel="icon" type="image/png" href="jacra-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
-<body data-stage="due_diligence">
+<body data-admin-only="true">
   <header>
     <div class="brand">
       <img src="jacra-logo.png" alt="Jacra Capital" class="brand-logo">
@@ -27,19 +27,24 @@
   <nav class="tabs" id="tabs"></nav>
 
   <main>
-    <a class="back-link" href="due-diligence.html">← Back to Due Diligence</a>
-    <div class="detail-card">
-      <h2 id="detail-address"></h2>
-      <p class="subline" id="detail-progress"></p>
-      <div id="checklist"></div>
+    <a class="back-link" href="acquisitions.html">← Back to the portal</a>
+    <div class="detail-card" style="max-width: 640px;">
+      <h2>Manage Staff</h2>
+      <p class="subline">Each login sees only the pages ticked for it. An admin login sees and manages everything, including this screen.</p>
 
-      <div class="section-label">Notes</div>
-      <label><textarea id="f-notes"></textarea></label>
-      <div class="modal-actions">
-        <button class="secondary" id="save-notes-btn">Save notes</button>
-      </div>
+      <div id="staff-list"></div>
 
-      <div class="modal-actions" id="stage-actions"></div>
+      <div class="section-label">Add a login</div>
+      <form id="staff-add-form">
+        <div class="row">
+          <label>Username <input type="text" id="new-staff-username" required></label>
+          <label>Password <input type="password" id="new-staff-password" required></label>
+        </div>
+        <div class="stage-checkbox-list" id="new-staff-stages"></div>
+        <div class="modal-actions">
+          <button type="submit">Add login</button>
+        </div>
+      </form>
     </div>
   </main>
 
@@ -56,6 +61,6 @@
   </div>
 
   <script src="app-shared.js"></script>
-  <script src="due-diligence-detail.js"></script>
+  <script src="staff.js"></script>
 </body>
 </html>

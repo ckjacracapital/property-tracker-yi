@@ -11,6 +11,8 @@ function wait(ms) {
 // storage backend is eventually consistent), so retry briefly before
 // concluding it really doesn't exist.
 async function loadAll() {
+  const me = await initAuth();
+  if (!me) return;
   let properties = await fetchProperties();
   property = properties.find((p) => p.id === propertyId);
   for (const delayMs of [1000, 2000, 3000, 5000]) {
@@ -57,7 +59,7 @@ function render() {
 
   const actionsEl = document.getElementById('stage-actions');
   actionsEl.innerHTML = '';
-  actionsEl.appendChild(handoverToggleButton(property, loadAll));
+  appendHandoverToggle(actionsEl, property, loadAll);
 }
 
 async function saveChecklistItem(key, value) {

@@ -6,6 +6,8 @@ const propertyForm = document.getElementById('property-form');
 const portfolioSelect = document.getElementById('f-portfolioId');
 
 async function loadAll() {
+  const me = await initAuth();
+  if (!me) return;
   [properties, portfolios] = await Promise.all([fetchProperties(), fetchPortfolios()]);
   renderNav(properties);
   render();
@@ -44,13 +46,9 @@ function renderCard(p) {
   openBtn.onclick = () => { window.location.href = `due-diligence-detail.html?id=${p.id}`; };
   actions.appendChild(openBtn);
 
-  actions.appendChild(handoverToggleButton(p, loadAll));
+  appendHandoverToggle(actions, p, loadAll);
 
-  const delBtn = document.createElement('button');
-  delBtn.className = 'secondary';
-  delBtn.textContent = 'Delete';
-  delBtn.onclick = () => deleteProperty(p.id);
-  actions.appendChild(delBtn);
+  appendDeleteButton(actions, () => deleteProperty(p.id));
 
   return el;
 }

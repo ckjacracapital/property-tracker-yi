@@ -24,6 +24,74 @@ function fetchPortfolios() {
   return fetchJSON('/api/portfolios');
 }
 
+// --- Session: who's logged in, and which stages can they see ---
+
+let currentUser = null;
+
+async function fetchMe() {
+  const res = await fetch('/api/auth/me');
+  if (!res.ok) return null;
+  return res.json();
+}
+
+function stageAllowedForCurrentUser(stageId) {
+  if (!currentUser) return false;
+  if (currentUser.allowedStages === 'all') return true;
+  return Array.isArray(currentUser.allowedStages) && currentUser.allowedStages.includes(stageId);
+}
+
+function firstAllowedHref(allowedStages) {
+  if (allowedStages === 'all') return 'acquisitions.html';
+  for (const stage of STAGE_META) {
+    if (Array.isArray(allowedStages) && allowedStages.includes(stage.id)) return stage.href;
+  }
+  return 'login.html';
+}
+
+// Every page calls this before loading any data. Redirects away (and
+// returns null) if the session is missing or isn't allowed on this page —
+// this is defense in depth alongside the edge function's own page gate,
+// since a session can expire mid-visit.
+async function initAuth() {
+  currentUser = await fetchMe();
+  if (!currentUser) {
+    window.location.href = 'login.html';
+    return null;
+  }
+  const requiredStage = document.body.dataset.stage;
+  if (requiredStage && !stageAllowedForCurrentUser(requiredStage)) {
+    window.location.href = firstAllowedHref(currentUser.allowedStages);
+    return null;
+  }
+  if (document.body.dataset.adminOnly === 'true' && currentUser.allowedStages !== 'all') {
+    window.location.href = firstAllowedHref(currentUser.allowedStages);
+    return null;
+  }
+
+  const staffBtn = document.getElementById('manage-staff-btn');
+  if (staffBtn) {
+    staffBtn.style.display = currentUser.allowedStages === 'all' ? '' : 'none';
+    staffBtn.onclick = () => { window.location.href = 'staff.html'; };
+  }
+
+  // Portfolio create/rename/delete is admin-only server-side; hide the
+  // entry point for restricted staff rather than let it silently no-op.
+  const portfoliosBtn = document.getElementById('manage-portfolios-btn');
+  if (portfoliosBtn && currentUser.allowedStages !== 'all') {
+    portfoliosBtn.style.display = 'none';
+  }
+
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = 'login.html';
+    };
+  }
+
+  return currentUser;
+}
+
 function isCompletedIn(property, stage) {
   return Boolean(property.stageHistory && property.stageHistory[stage]);
 }
@@ -86,7 +154,8 @@ function renderNav(properties) {
   if (!tabsEl) return;
   const currentStage = document.body.dataset.stage;
   tabsEl.innerHTML = '';
-  for (const stage of STAGE_META) {
+  const visibleStages = STAGE_META.filter((stage) => stageAllowedForCurrentUser(stage.id));
+  for (const stage of visibleStages) {
     const count = stage.count(properties);
     const a = document.createElement('a');
     a.className = 'tab-btn' + (stage.id === currentStage ? ' active' : '');
@@ -152,8 +221,10 @@ function ddProgress(property) {
 // Shared "Move to Handed Over" / "Remove from Handed Over" toggle, used on
 // both the Due Diligence list and its per-property checklist page. This is
 // the one deliberate manual click that moves a property into Handed Over —
-// nothing does it automatically.
-function handoverToggleButton(property, onChanged) {
+// nothing does it automatically. Setting the flag requires 'handed_over'
+// permission server-side, so a session without it doesn't get the button.
+function appendHandoverToggle(actions, property, onChanged) {
+  if (!stageAllowedForCurrentUser('handed_over')) return;
   const btn = document.createElement('button');
   if (property.reachedHandedOver) {
     btn.className = 'secondary';
@@ -169,7 +240,19 @@ function handoverToggleButton(property, onChanged) {
     });
     onChanged();
   };
-  return btn;
+  actions.appendChild(btn);
+}
+
+// Delete removes a property from every stage at once, so (matching the
+// server-side check) only an admin session gets the button at all rather
+// than clicking it and silently hitting a 403.
+function appendDeleteButton(actions, onDelete) {
+  if (!currentUser || currentUser.allowedStages !== 'all') return;
+  const delBtn = document.createElement('button');
+  delBtn.className = 'secondary';
+  delBtn.textContent = 'Delete';
+  delBtn.onclick = onDelete;
+  actions.appendChild(delBtn);
 }
 
 // --- Portfolio select + manage-portfolios modal, shared markup expected on every page ---
