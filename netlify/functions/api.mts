@@ -1,14 +1,20 @@
 import type { Context, Config } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 
-// The five stages a property moves through, in order, matching the
-// Refurb_Tracker_PAG_Style sheet's tabs.
-const STAGES = ["acquisitions", "refurb", "due_diligence", "handed_over", "inventory"];
+// Only Acquisitions and Refurb are a strict "one active stage at a time"
+// pipeline with an open/complete gate. Completing Refurb fans a property out
+// to Due Diligence and Inventory simultaneously (both just become visible,
+// no gate); Handed Over is reached only by an explicit manual action, never
+// automatically. None of the last three stages have an open/complete split.
+const STAGES = ["acquisitions", "refurb"];
 
 // Each stage keeps its own nested field group so a property's history from
 // earlier stages is preserved as it moves forward.
 const STAGE_GROUPS = ["acquisitions", "refurb", "dueDiligence", "handedOver", "inventory"];
-const CORE_FIELDS = ["propertyAddress", "bedrooms", "portfolioId"];
+const CORE_FIELDS = [
+  "propertyAddress", "bedrooms", "portfolioId",
+  "reachedDueDiligence", "reachedInventory", "reachedHandedOver"
+];
 
 const PROPERTIES_KEY = "properties";
 const PORTFOLIOS_KEY = "portfolios";
@@ -57,6 +63,9 @@ function newProperty(body: any) {
     propertyAddress: "",
     bedrooms: "",
     portfolioId: null,
+    reachedDueDiligence: false,
+    reachedInventory: false,
+    reachedHandedOver: false,
     acquisitions: {},
     refurb: {},
     dueDiligence: {},
@@ -102,7 +111,14 @@ async function handleProperties(req: Request, id: string, action: string) {
     const idx = STAGES.indexOf(property.stage);
     const now = new Date().toISOString();
     property.stageHistory[property.stage] = now;
-    if (idx < STAGES.length - 1) property.stage = STAGES[idx + 1];
+    if (property.stage === "refurb") {
+      // Refurb fans out to both Due Diligence and Inventory at once; neither
+      // has its own open/complete gate, so there's no further "stage" to move to.
+      property.reachedDueDiligence = true;
+      property.reachedInventory = true;
+    } else if (idx < STAGES.length - 1) {
+      property.stage = STAGES[idx + 1];
+    }
     property.updatedAt = now;
     await saveProperties(properties);
     return Response.json(property);
@@ -113,6 +129,10 @@ async function handleProperties(req: Request, id: string, action: string) {
     const property = properties.find((p) => p.id === id);
     if (!property) return Response.json({ error: "not found" }, { status: 404 });
     if (property.stageHistory[property.stage]) {
+      if (property.stage === "refurb") {
+        property.reachedDueDiligence = false;
+        property.reachedInventory = false;
+      }
       delete property.stageHistory[property.stage];
     } else {
       const idx = STAGES.indexOf(property.stage);

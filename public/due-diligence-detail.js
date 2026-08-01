@@ -1,4 +1,3 @@
-const STAGE = 'due_diligence';
 const params = new URLSearchParams(window.location.search);
 const propertyId = params.get('id');
 
@@ -43,21 +42,9 @@ function render() {
 
   document.getElementById('f-notes').value = g.notes || '';
 
-  const completed = isCompletedIn(property, STAGE);
   const actionsEl = document.getElementById('stage-actions');
   actionsEl.innerHTML = '';
-  if (completed) {
-    const reopenBtn = document.createElement('button');
-    reopenBtn.className = 'secondary';
-    reopenBtn.textContent = 'Reopen';
-    reopenBtn.onclick = reopen;
-    actionsEl.appendChild(reopenBtn);
-  } else {
-    const completeBtn = document.createElement('button');
-    completeBtn.textContent = 'Complete → Handed Over';
-    completeBtn.onclick = completeStage;
-    actionsEl.appendChild(completeBtn);
-  }
+  actionsEl.appendChild(handoverToggleButton(property, loadAll));
 }
 
 async function saveChecklistItem(key, value) {
@@ -78,15 +65,5 @@ document.getElementById('save-notes-btn').onclick = async () => {
     body: JSON.stringify({ dueDiligence: { notes: document.getElementById('f-notes').value } })
   });
 };
-
-async function completeStage() {
-  await fetch(`/api/properties/${propertyId}/complete`, { method: 'POST' });
-  window.location.href = 'due-diligence.html';
-}
-
-async function reopen() {
-  await fetch(`/api/properties/${propertyId}/reopen`, { method: 'POST' });
-  loadAll();
-}
 
 loadAll();

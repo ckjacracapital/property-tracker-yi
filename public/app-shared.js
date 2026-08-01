@@ -1,9 +1,13 @@
+// Acquisitions and Refurb are "gated" stages with an open/complete split, so
+// their nav count is the number currently active there. Due Diligence,
+// Handed Over and Inventory have no gate — a property either has reached
+// that stage or hasn't — so their count is just how many have the flag set.
 const STAGE_META = [
-  { id: 'acquisitions', label: 'Acquisitions & Legals', href: 'acquisitions.html' },
-  { id: 'refurb', label: 'Refurb & Payment', href: 'refurb.html' },
-  { id: 'due_diligence', label: 'Due Diligence', href: 'due-diligence.html' },
-  { id: 'handed_over', label: 'Handed Over', href: 'handed-over.html' },
-  { id: 'inventory', label: 'Inventory', href: 'inventory.html' }
+  { id: 'acquisitions', label: 'Acquisitions & Legals', href: 'acquisitions.html', count: (props) => props.filter((p) => isActiveIn(p, 'acquisitions')).length },
+  { id: 'refurb', label: 'Refurb & Payment', href: 'refurb.html', count: (props) => props.filter((p) => isActiveIn(p, 'refurb')).length },
+  { id: 'due_diligence', label: 'Due Diligence', href: 'due-diligence.html', count: (props) => props.filter((p) => p.reachedDueDiligence).length },
+  { id: 'handed_over', label: 'Handed Over', href: 'handed-over.html', count: (props) => props.filter((p) => p.reachedHandedOver).length },
+  { id: 'inventory', label: 'Inventory', href: 'inventory.html', count: (props) => props.filter((p) => p.reachedInventory).length }
 ];
 
 async function fetchJSON(url, opts) {
@@ -43,17 +47,51 @@ function groupByPortfolio(list, portfolios) {
   return Object.keys(groups).sort().map((key) => ({ portfolio: key, items: groups[key] }));
 }
 
+// For the three flag-based stages (no open/complete split): one heading with
+// a total count, then properties grouped by portfolio underneath.
+function renderFlatPortfolioSections(panelsEl, items, portfolios, cardRenderer) {
+  panelsEl.innerHTML = '';
+
+  const heading = document.createElement('div');
+  heading.className = 'section-heading';
+  heading.innerHTML = `Properties<span class="count">${items.length}</span>`;
+  panelsEl.appendChild(heading);
+
+  if (items.length === 0) {
+    const hint = document.createElement('div');
+    hint.className = 'empty-hint';
+    hint.textContent = 'No properties here right now.';
+    panelsEl.appendChild(hint);
+    return;
+  }
+
+  for (const group of groupByPortfolio(items, portfolios)) {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'portfolio-group';
+    const label = document.createElement('div');
+    label.className = 'portfolio-label';
+    label.textContent = group.portfolio;
+    groupEl.appendChild(label);
+
+    const cardsEl = document.createElement('div');
+    cardsEl.className = 'cards';
+    for (const p of group.items) cardsEl.appendChild(cardRenderer(p));
+    groupEl.appendChild(cardsEl);
+    panelsEl.appendChild(groupEl);
+  }
+}
+
 function renderNav(properties) {
   const tabsEl = document.getElementById('tabs');
   if (!tabsEl) return;
   const currentStage = document.body.dataset.stage;
   tabsEl.innerHTML = '';
   for (const stage of STAGE_META) {
-    const activeCount = properties.filter((p) => isActiveIn(p, stage.id)).length;
+    const count = stage.count(properties);
     const a = document.createElement('a');
     a.className = 'tab-btn' + (stage.id === currentStage ? ' active' : '');
     a.href = stage.href;
-    a.innerHTML = `${stage.label}<span class="tab-count">${activeCount}</span>`;
+    a.innerHTML = `${stage.label}<span class="tab-count">${count}</span>`;
     tabsEl.appendChild(a);
   }
 }
@@ -109,6 +147,29 @@ function ddProgress(property) {
   const g = (property && property.dueDiligence) || {};
   const done = DD_ITEMS.filter((item) => g[item.key] === 'Yes' || g[item.key] === 'AFL with Allium').length;
   return { done, total: DD_ITEMS.length };
+}
+
+// Shared "Move to Handed Over" / "Remove from Handed Over" toggle, used on
+// both the Due Diligence list and its per-property checklist page. This is
+// the one deliberate manual click that moves a property into Handed Over —
+// nothing does it automatically.
+function handoverToggleButton(property, onChanged) {
+  const btn = document.createElement('button');
+  if (property.reachedHandedOver) {
+    btn.className = 'secondary';
+    btn.textContent = 'Remove from Handed Over';
+  } else {
+    btn.textContent = 'Move to Handed Over';
+  }
+  btn.onclick = async () => {
+    await fetch(`/api/properties/${property.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reachedHandedOver: !property.reachedHandedOver })
+    });
+    onChanged();
+  };
+  return btn;
 }
 
 // --- Portfolio select + manage-portfolios modal, shared markup expected on every page ---
