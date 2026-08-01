@@ -1,6 +1,10 @@
 let properties = [];
 let portfolios = [];
 
+const modalBackdrop = document.getElementById('modal-backdrop');
+const propertyForm = document.getElementById('property-form');
+const portfolioSelect = document.getElementById('f-portfolioId');
+
 async function loadAll() {
   [properties, portfolios] = await Promise.all([fetchProperties(), fetchPortfolios()]);
   renderNav(properties);
@@ -56,5 +60,34 @@ async function deleteProperty(id) {
   await fetch(`/api/properties/${id}`, { method: 'DELETE' });
   loadAll();
 }
+
+function openModal() {
+  propertyForm.reset();
+  populatePortfolioSelect(portfolioSelect, portfolios, '');
+  modalBackdrop.classList.remove('hidden');
+}
+
+function closeModal() {
+  modalBackdrop.classList.add('hidden');
+}
+
+document.getElementById('new-btn').onclick = openModal;
+document.getElementById('cancel-btn').onclick = closeModal;
+
+propertyForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    propertyAddress: document.getElementById('f-propertyAddress').value,
+    bedrooms: document.getElementById('f-bedrooms').value,
+    portfolioId: portfolioSelect.value || null,
+    startStage: 'due_diligence'
+  };
+  const property = await fetch('/api/properties', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then((r) => r.json());
+  window.location.href = `due-diligence-detail.html?id=${property.id}`;
+});
 
 loadAll();

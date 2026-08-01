@@ -25,8 +25,27 @@
   <nav class="tabs" id="tabs"></nav>
 
   <main>
+    <div class="page-actions">
+      <button id="new-btn">+ New property</button>
+    </div>
     <div id="panels"></div>
   </main>
+
+  <div id="modal-backdrop" class="hidden">
+    <form id="property-form" class="modal">
+      <h3>New Property</h3>
+      <div class="section-label">Property</div>
+      <label>Portfolio
+        <select id="f-portfolioId"></select>
+      </label>
+      <label>Property address <input type="text" id="f-propertyAddress" required></label>
+      <label>Bedrooms <input type="number" id="f-bedrooms" min="0"></label>
+      <div class="modal-actions">
+        <button type="button" id="cancel-btn">Cancel</button>
+        <button type="submit" id="save-btn">Create &amp; open checklist</button>
+      </div>
+    </form>
+  </div>
 
   <div id="portfolio-modal-backdrop" class="hidden">
     <div class="modal">

@@ -26,14 +26,23 @@
 
   <main>
     <p class="empty-hint">Inventory tracking is a placeholder for now — just notes until this stage is fleshed out.</p>
+    <div class="page-actions">
+      <button id="new-btn">+ New property</button>
+    </div>
     <div id="panels"></div>
   </main>
 
   <div id="modal-backdrop" class="hidden">
     <form id="property-form" class="modal">
-      <h3>Inventory</h3>
+      <h3 id="modal-title">Inventory</h3>
       <input type="hidden" id="f-id">
-      <p class="readonly-address" id="f-address-display"></p>
+
+      <div class="section-label">Property</div>
+      <label>Portfolio
+        <select id="f-portfolioId"></select>
+      </label>
+      <label>Property address <input type="text" id="f-propertyAddress" required></label>
+      <label>Bedrooms <input type="number" id="f-bedrooms" min="0"></label>
 
       <div class="section-label">Notes</div>
       <label><textarea id="f-notes"></textarea></label>

@@ -8,6 +8,8 @@ let portfolios = [];
 
 const modalBackdrop = document.getElementById('modal-backdrop');
 const propertyForm = document.getElementById('property-form');
+const modalTitle = document.getElementById('modal-title');
+const portfolioSelect = document.getElementById('f-portfolioId');
 const weekGrid = document.getElementById('week-grid');
 const paymentGrid = document.getElementById('payment-grid');
 const totalPaidDisplay = document.getElementById('total-paid-display');
@@ -166,10 +168,13 @@ async function reopen(id) {
 
 function openModal(property) {
   propertyForm.reset();
-  document.getElementById('f-id').value = property.id;
-  document.getElementById('f-address-display').textContent = property.propertyAddress || '(no address)';
+  populatePortfolioSelect(portfolioSelect, portfolios, property ? property.portfolioId : '');
+  document.getElementById('f-id').value = property ? property.id : '';
+  modalTitle.textContent = property ? 'Edit Refurb & Payment' : 'New Property';
+  document.getElementById('f-propertyAddress').value = property ? property.propertyAddress || '' : '';
+  document.getElementById('f-bedrooms').value = property ? property.bedrooms || '' : '';
 
-  const g = property[GROUP] || {};
+  const g = (property && property[GROUP]) || {};
   document.getElementById('f-contractor').value = g.contractor || '';
   document.getElementById('f-contractorAgreement').value = g.contractorAgreement || '';
 
@@ -193,6 +198,7 @@ function closeModal() {
   modalBackdrop.classList.add('hidden');
 }
 
+document.getElementById('new-btn').onclick = () => openModal(null);
 document.getElementById('cancel-btn').onclick = closeModal;
 
 propertyForm.addEventListener('submit', async (e) => {
@@ -214,11 +220,25 @@ propertyForm.addEventListener('submit', async (e) => {
     payments,
     notes: document.getElementById('f-notes').value
   };
-  await fetch(`/api/properties/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ [GROUP]: group })
-  });
+  const payload = {
+    propertyAddress: document.getElementById('f-propertyAddress').value,
+    bedrooms: document.getElementById('f-bedrooms').value,
+    portfolioId: portfolioSelect.value || null,
+    [GROUP]: group
+  };
+  if (id) {
+    await fetch(`/api/properties/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } else {
+    await fetch('/api/properties', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, startStage: 'refurb' })
+    });
+  }
   closeModal();
   loadAll();
 });

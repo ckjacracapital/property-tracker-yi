@@ -3,10 +3,23 @@ const propertyId = params.get('id');
 
 let property = null;
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// A property created just now may not show up on the very next read (the
+// storage backend is eventually consistent), so retry briefly before
+// concluding it really doesn't exist.
 async function loadAll() {
-  const properties = await fetchProperties();
-  renderNav(properties);
+  let properties = await fetchProperties();
   property = properties.find((p) => p.id === propertyId);
+  for (const delayMs of [1000, 2000, 3000, 5000]) {
+    if (property) break;
+    await wait(delayMs);
+    properties = await fetchProperties();
+    property = properties.find((p) => p.id === propertyId);
+  }
+  renderNav(properties);
   if (!property) {
     document.getElementById('detail-address').textContent = 'Property not found';
     return;

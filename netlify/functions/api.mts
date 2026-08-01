@@ -52,20 +52,43 @@ function applyUpdate(property: any, body: any) {
   }
 }
 
+// Lets a property be added directly at any page instead of only ever
+// starting at Acquisitions. Earlier gates it skips are treated as already
+// done (rather than "pending"), so it doesn't show up as needing work on a
+// stage it was never meant to pass through in this tool.
+function startingState(startStage: string) {
+  const now = new Date().toISOString();
+  const state: any = {
+    stage: "acquisitions",
+    stageHistory: {},
+    reachedDueDiligence: false,
+    reachedInventory: false,
+    reachedHandedOver: false
+  };
+  if (startStage === "refurb" || startStage === "due_diligence" || startStage === "handed_over" || startStage === "inventory") {
+    state.stage = "refurb";
+  }
+  if (startStage === "due_diligence" || startStage === "handed_over" || startStage === "inventory") {
+    state.stageHistory.refurb = now;
+    state.reachedDueDiligence = true;
+    state.reachedInventory = true;
+  }
+  if (startStage === "handed_over") {
+    state.reachedHandedOver = true;
+  }
+  return state;
+}
+
 function newProperty(body: any) {
   const now = new Date().toISOString();
   const property: any = {
     id: crypto.randomUUID(),
-    stage: STAGES[0],
-    stageHistory: {},
+    ...startingState(body.startStage),
     createdAt: now,
     updatedAt: now,
     propertyAddress: "",
     bedrooms: "",
     portfolioId: null,
-    reachedDueDiligence: false,
-    reachedInventory: false,
-    reachedHandedOver: false,
     acquisitions: {},
     refurb: {},
     dueDiligence: {},
