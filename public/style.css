@@ -525,10 +525,12 @@ body.login-page {
 }
 
 .login-logo {
+  align-self: flex-start;
   height: 44px;
   width: auto;
   border-radius: 6px;
   margin-bottom: 4px;
+  object-fit: contain;
 }
 
 .login-error {
