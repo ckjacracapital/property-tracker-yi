@@ -484,7 +484,11 @@ main {
 
 body.login-page {
   margin: 0;
-  background: #1e2b3a url("jacra-hero-poster.jpg") center / cover no-repeat fixed;
+  background-color: #1e2b3a;
+  background-image: url("jacra-hero-poster.jpg");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 .login-video {
