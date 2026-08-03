@@ -82,7 +82,7 @@ function renderCard(p, completed) {
   if (g.priority) figures.push('★ Priority');
   if (g.numbersConfirmed) figures.push('Numbers confirmed');
   if (g.purchasePrice) figures.push(`£${Number(g.purchasePrice).toLocaleString()} purchase`);
-  if (g.targetedRent) figures.push(`£${Number(g.targetedRent).toLocaleString()} pcm rent`);
+  if (g.targetedRent) figures.push(`£${Number(g.targetedRent).toLocaleString()} rent p/a`);
   if (g.netYield) figures.push(`${g.netYield}% yield`);
   if (g.agentName) figures.push(g.agentName);
 
