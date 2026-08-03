@@ -596,8 +596,45 @@ body.login-page {
   font-weight: 500;
 }
 
+/* Activity dashboard */
+
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.activity-user {
+  font-weight: 600;
+  color: var(--jacra-navy);
+  min-width: 110px;
+}
+
+.activity-detail {
+  color: var(--muted);
+  flex: 1;
+}
+
+.activity-desc {
+  flex: 1;
+  color: var(--text);
+}
+
+.activity-time {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 @media (max-width: 600px) {
   .modal .row { grid-template-columns: 1fr; }
   .cards { grid-template-columns: 1fr; }
   .week-grid { grid-template-columns: repeat(2, 1fr); }
+  .activity-row { flex-wrap: wrap; }
 }

@@ -74,6 +74,14 @@ async function initAuth() {
     staffBtn.onclick = () => { window.location.href = 'staff.html'; };
   }
 
+  const activityBtn = document.getElementById('activity-btn');
+  if (activityBtn) {
+    activityBtn.style.display = currentUser.allowedStages === 'all' ? '' : 'none';
+    activityBtn.onclick = () => { window.location.href = 'activity.html'; };
+  }
+
+  startActivityPing(document.body.dataset.stage || document.body.dataset.pageId || 'other');
+
   // Portfolio create/rename/delete is admin-only server-side; hide the
   // entry point for restricted staff rather than let it silently no-op.
   const portfoliosBtn = document.getElementById('manage-portfolios-btn');
@@ -90,6 +98,24 @@ async function initAuth() {
   }
 
   return currentUser;
+}
+
+// Pings the server every 20s while this page is visible so the admin
+// Activity dashboard can show who's online and how long they've spent on
+// each page. The first ping (initial:true) also logs a page-view event.
+function startActivityPing(stage) {
+  let first = true;
+  const ping = () => {
+    if (document.hidden) return;
+    fetch('/api/activity/ping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stage, initial: first })
+    }).catch(() => {});
+    first = false;
+  };
+  ping();
+  setInterval(ping, 20000);
 }
 
 function isCompletedIn(property, stage) {

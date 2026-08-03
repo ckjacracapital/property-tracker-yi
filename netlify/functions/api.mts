@@ -38,8 +38,14 @@ const FLAG_TO_STAGE: Record<string, string> = {
 const PROPERTIES_KEY = "properties";
 const PORTFOLIOS_KEY = "portfolios";
 const STAFF_KEY = "staffUsers";
+const PRESENCE_KEY = "presence";
+const TIME_SPENT_KEY = "timeSpent";
+const ACTIVITY_LOG_KEY = "activityLog";
 const SESSION_COOKIE = "jacra_session";
 const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+const HEARTBEAT_INTERVAL_SECONDS = 20;
+const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
+const ACTIVITY_LOG_MAX = 500;
 
 function propertiesStore() {
   return getStore("property-tracker");
@@ -70,6 +76,40 @@ async function loadStaff(): Promise<any[]> {
 
 async function saveStaff(staff: any[]) {
   await propertiesStore().setJSON(STAFF_KEY, staff);
+}
+
+async function loadPresence(): Promise<Record<string, { lastSeen: string; path: string }>> {
+  const data = await propertiesStore().get(PRESENCE_KEY, { type: "json" });
+  return data || {};
+}
+
+async function savePresence(presence: Record<string, { lastSeen: string; path: string }>) {
+  await propertiesStore().setJSON(PRESENCE_KEY, presence);
+}
+
+async function loadTimeSpent(): Promise<Record<string, Record<string, number>>> {
+  const data = await propertiesStore().get(TIME_SPENT_KEY, { type: "json" });
+  return data || {};
+}
+
+async function saveTimeSpent(timeSpent: Record<string, Record<string, number>>) {
+  await propertiesStore().setJSON(TIME_SPENT_KEY, timeSpent);
+}
+
+async function loadActivityLog(): Promise<any[]> {
+  const data = await propertiesStore().get(ACTIVITY_LOG_KEY, { type: "json" });
+  return data || [];
+}
+
+async function saveActivityLog(log: any[]) {
+  await propertiesStore().setJSON(ACTIVITY_LOG_KEY, log);
+}
+
+async function logEvent(username: string, type: string, detail: any) {
+  const log = await loadActivityLog();
+  log.push({ id: crypto.randomUUID(), ts: new Date().toISOString(), username, type, detail });
+  const trimmed = log.length > ACTIVITY_LOG_MAX ? log.slice(log.length - ACTIVITY_LOG_MAX) : log;
+  await saveActivityLog(trimmed);
 }
 
 // --- Crypto helpers (Web Crypto, available in both this Node function
@@ -311,6 +351,7 @@ async function handleProperties(req: Request, id: string, action: string, sessio
     const property = newProperty(body);
     properties.push(property);
     await saveProperties(properties);
+    await logEvent(session.username, "property_created", { id: property.id, address: property.propertyAddress, stage: startStage });
     return Response.json(property, { status: 201 });
   }
 
@@ -325,6 +366,8 @@ async function handleProperties(req: Request, id: string, action: string, sessio
     applyUpdate(property, body);
     property.updatedAt = new Date().toISOString();
     await saveProperties(properties);
+    const touchedGroups = Object.keys(body).filter((k) => STAGE_GROUPS.includes(k));
+    await logEvent(session.username, "property_updated", { id: property.id, address: property.propertyAddress, groups: touchedGroups });
     return Response.json(property);
   }
 
@@ -346,6 +389,7 @@ async function handleProperties(req: Request, id: string, action: string, sessio
     }
     property.updatedAt = now;
     await saveProperties(properties);
+    await logEvent(session.username, "stage_completed", { id: property.id, address: property.propertyAddress, stage: idx === 0 ? "acquisitions" : "refurb" });
     return Response.json(property);
   }
 
@@ -370,15 +414,18 @@ async function handleProperties(req: Request, id: string, action: string, sessio
     }
     property.updatedAt = new Date().toISOString();
     await saveProperties(properties);
+    await logEvent(session.username, "stage_reopened", { id: property.id, address: property.propertyAddress, stage: property.stage });
     return Response.json(property);
   }
 
   if (req.method === "DELETE" && id && !action) {
     if (!isAdmin(session)) return Response.json({ error: "forbidden" }, { status: 403 });
     const properties = await loadProperties();
+    const target = properties.find((p) => p.id === id);
     const next = properties.filter((p) => p.id !== id);
     if (next.length === properties.length) return Response.json({ error: "not found" }, { status: 404 });
     await saveProperties(next);
+    await logEvent(session.username, "property_deleted", { id, address: target?.propertyAddress });
     return new Response(null, { status: 204 });
   }
 
@@ -401,6 +448,7 @@ async function handlePortfolios(req: Request, id: string, session: any) {
     const portfolio = { id: crypto.randomUUID(), name: String(body.name).trim() };
     portfolios.push(portfolio);
     await savePortfolios(portfolios);
+    await logEvent(session.username, "portfolio_created", { name: portfolio.name });
     return Response.json(portfolio, { status: 201 });
   }
 
@@ -411,11 +459,13 @@ async function handlePortfolios(req: Request, id: string, session: any) {
     if (!portfolio) return Response.json({ error: "not found" }, { status: 404 });
     if (body.name !== undefined) portfolio.name = String(body.name).trim();
     await savePortfolios(portfolios);
+    await logEvent(session.username, "portfolio_updated", { name: portfolio.name });
     return Response.json(portfolio);
   }
 
   if (req.method === "DELETE" && id) {
     const portfolios = await loadPortfolios();
+    const target = portfolios.find((p) => p.id === id);
     const next = portfolios.filter((p) => p.id !== id);
     if (next.length === portfolios.length) return Response.json({ error: "not found" }, { status: 404 });
     await savePortfolios(next);
@@ -430,6 +480,7 @@ async function handlePortfolios(req: Request, id: string, session: any) {
     }
     if (changed) await saveProperties(properties);
 
+    await logEvent(session.username, "portfolio_deleted", { name: target?.name });
     return new Response(null, { status: 204 });
   }
 
@@ -475,6 +526,7 @@ async function handleAuth(req: Request, action: string) {
     }
 
     const token = await signSession({ username: user.username, allowedStages: user.allowedStages });
+    await logEvent(user.username, "login", {});
     return Response.json(
       { username: user.username, allowedStages: user.allowedStages },
       { headers: { "Set-Cookie": sessionCookieHeader(token) } }
@@ -482,6 +534,8 @@ async function handleAuth(req: Request, action: string) {
   }
 
   if (action === "logout" && req.method === "POST") {
+    const session = await getSession(req);
+    if (session) await logEvent(session.username, "logout", {});
     return new Response(null, { status: 204, headers: { "Set-Cookie": clearCookieHeader() } });
   }
 
@@ -522,6 +576,7 @@ async function handleStaff(req: Request, id: string, session: any) {
     };
     staff.push(user);
     await saveStaff(staff);
+    await logEvent(session.username, "staff_created", { username: user.username });
     return Response.json(publicShape(user), { status: 201 });
   }
 
@@ -537,14 +592,17 @@ async function handleStaff(req: Request, id: string, session: any) {
       user.passwordSalt = salt;
     }
     await saveStaff(staff);
+    await logEvent(session.username, "staff_updated", { username: user.username });
     return Response.json(publicShape(user));
   }
 
   if (req.method === "DELETE" && id) {
     const staff = await loadStaff();
+    const target = staff.find((u) => u.id === id);
     const next = staff.filter((u) => u.id !== id);
     if (next.length === staff.length) return Response.json({ error: "not found" }, { status: 404 });
     await saveStaff(next);
+    await logEvent(session.username, "staff_deleted", { username: target?.username });
     return new Response(null, { status: 204 });
   }
 
@@ -631,6 +689,7 @@ async function handleExport(stage: string, session: any) {
     });
   }
 
+  await logEvent(session.username, "export", { stage, rowCount: rows.length });
   return new Response(toCsv(headers, rows), {
     status: 200,
     headers: {
@@ -638,6 +697,51 @@ async function handleExport(stage: string, session: any) {
       "Content-Disposition": `attachment; filename="${stage}-export.csv"`
     }
   });
+}
+
+// Heartbeat: any authenticated page pings this every ~20s while visible, so
+// "who's online" and "time spent per page" stay current without needing a
+// persistent connection. Not logged to the activity feed itself (that would
+// flood it) — only the first ping of a page load is, as a page_view event.
+async function handlePing(req: Request, session: any) {
+  const body = await req.json().catch(() => ({}));
+  const stage = String(body.stage || "unknown");
+  const now = new Date().toISOString();
+
+  const presence = await loadPresence();
+  presence[session.username] = { lastSeen: now, path: stage };
+  await savePresence(presence);
+
+  const timeSpent = await loadTimeSpent();
+  timeSpent[session.username] = timeSpent[session.username] || {};
+  timeSpent[session.username][stage] = (timeSpent[session.username][stage] || 0) + HEARTBEAT_INTERVAL_SECONDS;
+  await saveTimeSpent(timeSpent);
+
+  if (body.initial) await logEvent(session.username, "page_view", { stage });
+
+  return new Response(null, { status: 204 });
+}
+
+async function handleActivityDashboard(session: any) {
+  if (!isAdmin(session)) return Response.json({ error: "forbidden" }, { status: 403 });
+
+  const [presence, timeSpent, log] = await Promise.all([loadPresence(), loadTimeSpent(), loadActivityLog()]);
+
+  const now = Date.now();
+  const online = Object.entries(presence)
+    .filter(([, v]) => now - Date.parse(v.lastSeen) < ONLINE_THRESHOLD_MS)
+    .map(([username, v]) => ({ username, path: v.path, lastSeen: v.lastSeen }));
+
+  const timeSpentRows: any[] = [];
+  for (const [username, stages] of Object.entries(timeSpent)) {
+    for (const [stage, seconds] of Object.entries(stages)) {
+      timeSpentRows.push({ username, stage, seconds });
+    }
+  }
+
+  const feed = [...log].reverse().slice(0, 200);
+
+  return Response.json({ online, timeSpent: timeSpentRows, feed });
 }
 
 export default async (req: Request, context: Context) => {
@@ -659,6 +763,11 @@ export default async (req: Request, context: Context) => {
     }
     if (resource === "export") {
       return await handleExport(parts[1], session);
+    }
+    if (resource === "activity") {
+      if (parts[1] === "ping" && req.method === "POST") return await handlePing(req, session);
+      if (!parts[1] && req.method === "GET") return await handleActivityDashboard(session);
+      return Response.json({ error: "not found" }, { status: 404 });
     }
     if (resource === "properties") {
       return await handleProperties(req, parts[1], parts[2], session);
