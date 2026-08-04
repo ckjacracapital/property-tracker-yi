@@ -332,6 +332,25 @@ function newProperty(body: any) {
   return property;
 }
 
+// One read, N in-memory appends, one write — unlike posting N properties one
+// at a time (each its own read-modify-write), this can't race with itself
+// and silently drop entries the way sequential individual creates can when
+// the underlying store hasn't caught up between one write and the next read.
+async function handleBulkImport(req: Request, session: any) {
+  if (!isAdmin(session)) return Response.json({ error: "forbidden" }, { status: 403 });
+  const body = await req.json();
+  const items = Array.isArray(body.items) ? body.items : [];
+  const valid = items.filter((item: any) => item && String(item.propertyAddress || "").trim());
+  if (valid.length === 0) return Response.json({ error: "no valid items" }, { status: 400 });
+
+  const properties = await loadProperties();
+  const created = valid.map((item: any) => newProperty(item));
+  properties.push(...created);
+  await saveProperties(properties);
+  await logEvent(session.username, "bulk_import", { count: created.length });
+  return Response.json({ created: created.length }, { status: 201 });
+}
+
 async function handleProperties(req: Request, id: string, action: string, session: any) {
   if (req.method === "GET" && !id) {
     const properties = await loadProperties();
@@ -768,6 +787,9 @@ export default async (req: Request, context: Context) => {
       if (parts[1] === "ping" && req.method === "POST") return await handlePing(req, session);
       if (!parts[1] && req.method === "GET") return await handleActivityDashboard(session);
       return Response.json({ error: "not found" }, { status: 404 });
+    }
+    if (resource === "properties" && parts[1] === "bulk-import") {
+      return await handleBulkImport(req, session);
     }
     if (resource === "properties") {
       return await handleProperties(req, parts[1], parts[2], session);
