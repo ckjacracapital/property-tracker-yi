@@ -184,9 +184,9 @@ main {
 }
 
 .cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .empty-hint {
@@ -196,10 +196,13 @@ main {
 }
 
 .card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   background: var(--card-bg);
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--border);
-  padding: 10px 12px;
+  padding: 8px 14px;
   border-left: 3px solid var(--jacra-chartreuse);
 }
 
@@ -215,15 +218,23 @@ main {
 }
 
 .card h3 {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 14px;
   font-weight: 600;
+  flex: 0 0 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card .subline {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 12px;
   color: var(--muted);
+  flex: 0 0 170px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card .figures {
@@ -231,7 +242,8 @@ main {
   flex-wrap: wrap;
   gap: 6px;
   font-size: 11px;
-  margin-bottom: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .card .figures span {
@@ -240,17 +252,21 @@ main {
   border-radius: 4px;
   padding: 2px 7px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .card .actions {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .card .actions button {
   font-size: 11px;
   padding: 5px 9px;
+  white-space: nowrap;
 }
 
 #modal-backdrop, #portfolio-modal-backdrop {
@@ -632,9 +648,19 @@ body.login-page {
   white-space: nowrap;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .modal .row { grid-template-columns: 1fr; }
-  .cards { grid-template-columns: 1fr; }
   .week-grid { grid-template-columns: repeat(2, 1fr); }
   .activity-row { flex-wrap: wrap; }
+  .card {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .card h3, .card .subline {
+    flex-basis: 100%;
+    white-space: normal;
+  }
+  .card .actions {
+    margin-left: 0;
+  }
 }
