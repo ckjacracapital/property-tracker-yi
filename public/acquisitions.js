@@ -16,12 +16,9 @@ const FINANCIAL_FIELDS = [
   'refurbCost', 'utilities', 'certs', 'yiMargin', 'stampDuty', 'fees', 'legals', 'comms'
 ];
 
-// PROVISIONAL ORDER — Charley is sending the real Jacra pipeline sequence
-// separately; this is a reasonable placeholder in the meantime. Reordering
-// this array is the only change needed once the real order is known.
 const TIMELINE_STEPS = [
-  'Reviewing Numbers', 'Offer', 'Visit', 'Searches', 'Legals',
-  'Needs Initial Checks', 'List', 'Pending SR', 'Listed', 'Allocated'
+  'Offer Accepted', 'Memo Sent', 'Drafts Received', 'Enquiries Sent',
+  'Ready to List', 'Listed', 'Allocated', 'Complete'
 ];
 
 function missingNumbers(g) {
