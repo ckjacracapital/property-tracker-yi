@@ -106,10 +106,11 @@ function renderCardImage(g) {
 
 function statBlock(value, label) {
   const stat = document.createElement('div');
-  stat.className = 'acq-stat';
+  const isMissing = !value;
+  stat.className = 'acq-stat' + (isMissing ? ' missing' : '');
   const valueEl = document.createElement('span');
-  valueEl.className = 'acq-stat-value' + (value ? '' : ' empty');
-  valueEl.textContent = value || '—';
+  valueEl.className = 'acq-stat-value' + (isMissing ? ' empty' : '');
+  valueEl.textContent = value || 'Needs adding';
   const labelEl = document.createElement('span');
   labelEl.className = 'acq-stat-label';
   labelEl.textContent = label;
@@ -160,17 +161,21 @@ function renderCard(p, completed) {
 // --- Detail / timeline modal ---
 
 const DETAIL_STAT_FIELDS = [
+  ['agentName', 'Agent Name'], ['agentContact', 'Agent Contact'], ['propertyUsage', 'Property Usage'],
   ['purchasePrice', 'Purchase Price'], ['targetedRent', 'Rent p/a'], ['netYield', 'Net Yield'],
   ['valuationAt8', 'Valuation @8%'], ['totalCapitalLoan', 'Total Capital Loan'], ['refurbCost', 'Refurb Cost'],
   ['stampDuty', 'Stamp Duty'], ['fees', 'Fees'], ['legals', 'Legals'],
   ['comms', 'Comms'], ['utilities', 'Utilities'], ['certs', 'Certs'], ['yiMargin', 'YI Margin']
 ];
 
+const TEXT_STAT_FIELDS = ['agentName', 'agentContact', 'propertyUsage'];
+
 const detailModalBackdrop = document.getElementById('detail-modal-backdrop');
 let detailPropertyId = null;
 
 function formatStatValue(field, value) {
   if (value === undefined || value === null || value === '') return '';
+  if (TEXT_STAT_FIELDS.includes(field)) return String(value);
   if (field === 'netYield') return `${value}%`;
   return `£${Number(value).toLocaleString()}`;
 }
@@ -181,8 +186,9 @@ function renderTimeline(currentStatus, propertyId) {
   const currentIdx = TIMELINE_STEPS.indexOf(currentStatus);
   TIMELINE_STEPS.forEach((step, i) => {
     const stepEl = document.createElement('div');
-    stepEl.className = 'timeline-step' + (i === currentIdx ? ' active' : '') + (currentIdx >= 0 && i < currentIdx ? ' done' : '');
-    stepEl.innerHTML = `<span class="timeline-dot">${i === currentIdx ? '●' : ''}</span><span class="timeline-label">${step}</span>`;
+    const isDone = currentIdx >= 0 && i < currentIdx;
+    stepEl.className = 'timeline-step' + (i === currentIdx ? ' active' : '') + (isDone ? ' done' : '');
+    stepEl.innerHTML = `<span class="timeline-dot">${isDone ? '✓' : i + 1}</span><span class="timeline-label">${step}</span>`;
     stepEl.onclick = (e) => {
       e.stopPropagation();
       setStatus(propertyId, step);
