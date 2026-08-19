@@ -197,9 +197,16 @@ async function setStatus(id, status) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ [GROUP]: { status } })
   });
-  await loadAll();
-  const refreshed = properties.find((p) => p.id === id);
-  if (refreshed) openDetailModal(refreshed);
+  // Update in place and re-render immediately rather than re-fetching —
+  // the storage backend can take a few seconds to reflect a write it just
+  // accepted, so an immediate re-fetch can briefly show the old value.
+  const local = properties.find((p) => p.id === id);
+  if (local) {
+    local.acquisitions = { ...(local.acquisitions || {}), status };
+    render();
+    openDetailModal(local);
+  }
+  loadAll();
 }
 
 function openDetailModal(p) {
