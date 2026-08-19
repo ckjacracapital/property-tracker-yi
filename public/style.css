@@ -741,6 +741,15 @@ body.login-page {
   color: var(--muted);
 }
 
+.subline-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--jacra-navy);
+  margin-right: 4px;
+}
+
 .acq-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

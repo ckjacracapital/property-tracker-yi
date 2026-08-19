@@ -244,6 +244,32 @@ async function setStatus(id, status) {
   loadAll();
 }
 
+function sublineItem(label, value) {
+  if (!value) return null;
+  const wrap = document.createElement('span');
+  wrap.className = 'subline-item';
+  const labelEl = document.createElement('span');
+  labelEl.className = 'subline-label';
+  labelEl.textContent = label;
+  wrap.appendChild(labelEl);
+  wrap.appendChild(document.createTextNode(String(value)));
+  return wrap;
+}
+
+function renderDetailSubline(g, p) {
+  const el = document.getElementById('detail-subline');
+  el.innerHTML = '';
+  const items = [
+    sublineItem('Property Usage', g.propertyUsage),
+    sublineItem('Bedrooms', p.bedrooms ? `${p.bedrooms} bed` : ''),
+    sublineItem('Agent', g.agentName)
+  ].filter(Boolean);
+  items.forEach((item, i) => {
+    if (i > 0) el.appendChild(document.createTextNode('   ·   '));
+    el.appendChild(item);
+  });
+}
+
 function openDetailModal(p) {
   const g = p[GROUP] || {};
   detailPropertyId = p.id;
@@ -263,7 +289,7 @@ function openDetailModal(p) {
   }
 
   document.getElementById('detail-address').textContent = p.propertyAddress || '(no address)';
-  document.getElementById('detail-subline').textContent = [g.propertyUsage, p.bedrooms ? `${p.bedrooms} bed` : '', g.agentName].filter(Boolean).join(' · ');
+  renderDetailSubline(g, p);
 
   const needsNumbersEl = document.getElementById('detail-needs-numbers');
   needsNumbersEl.classList.toggle('hidden', !missingNumbers(g));
