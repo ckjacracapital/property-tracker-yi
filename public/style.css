@@ -269,7 +269,7 @@ main {
   white-space: nowrap;
 }
 
-#modal-backdrop, #portfolio-modal-backdrop {
+#modal-backdrop, #portfolio-modal-backdrop, #detail-modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(30, 43, 58, 0.55);
@@ -281,7 +281,7 @@ main {
   z-index: 10;
 }
 
-#modal-backdrop.hidden, #portfolio-modal-backdrop.hidden { display: none; }
+#modal-backdrop.hidden, #portfolio-modal-backdrop.hidden, #detail-modal-backdrop.hidden { display: none; }
 
 .modal {
   background: #fff;
