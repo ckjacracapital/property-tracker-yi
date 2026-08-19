@@ -183,6 +183,29 @@ main {
   letter-spacing: 0.03em;
 }
 
+.stage-group { margin-bottom: 14px; padding-left: 12px; border-left: 3px solid var(--border); }
+
+.stage-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stage-label .count {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--jacra-navy);
+}
+
 .cards {
   display: flex;
   flex-direction: column;

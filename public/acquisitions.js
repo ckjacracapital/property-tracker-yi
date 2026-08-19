@@ -79,13 +79,42 @@ function renderSection(title, items, completed) {
     label.textContent = group.portfolio;
     groupEl.appendChild(label);
 
-    const cardsEl = document.createElement('div');
-    cardsEl.className = 'acq-grid';
-    for (const p of group.items) cardsEl.appendChild(renderCard(p, completed));
-    groupEl.appendChild(cardsEl);
+    for (const stageGroup of groupByStage(group.items)) {
+      const stageEl = document.createElement('div');
+      stageEl.className = 'stage-group';
+      const stageLabel = document.createElement('div');
+      stageLabel.className = 'stage-label';
+      stageLabel.innerHTML = `${stageGroup.stage}<span class="count">${stageGroup.items.length}</span>`;
+      stageEl.appendChild(stageLabel);
+
+      const cardsEl = document.createElement('div');
+      cardsEl.className = 'acq-grid';
+      for (const p of stageGroup.items) cardsEl.appendChild(renderCard(p, completed));
+      stageEl.appendChild(cardsEl);
+      groupEl.appendChild(stageEl);
+    }
     block.appendChild(groupEl);
   }
   return block;
+}
+
+// Splits a portfolio's properties into their sales-progression stages, in
+// TIMELINE_STEPS order, so each stage renders as its own labelled row.
+function groupByStage(items) {
+  const buckets = new Map(TIMELINE_STEPS.map((step) => [step, []]));
+  const other = [];
+  for (const p of items) {
+    const status = (p[GROUP] || {}).status;
+    if (status && buckets.has(status)) buckets.get(status).push(p);
+    else other.push(p);
+  }
+  const result = [];
+  for (const step of TIMELINE_STEPS) {
+    const arr = buckets.get(step);
+    if (arr.length) result.push({ stage: step, items: arr });
+  }
+  if (other.length) result.push({ stage: 'Not yet started', items: other });
+  return result;
 }
 
 function renderCardImage(g) {
