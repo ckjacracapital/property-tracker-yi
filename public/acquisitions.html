@@ -45,6 +45,7 @@
         <select id="f-portfolioId"></select>
       </label>
       <label>Property address <input type="text" id="f-propertyAddress" required></label>
+      <label>Picture URL <input type="text" id="f-pictureUrl" placeholder="https://... (link to a photo)"></label>
       <div class="row">
         <label>Status
           <select id="f-status">
@@ -123,6 +124,33 @@
         <button type="submit" id="save-btn">Save</button>
       </div>
     </form>
+  </div>
+
+  <div id="detail-modal-backdrop" class="hidden">
+    <div class="modal detail-modal">
+      <div class="acq-card-image acq-detail-image" id="detail-image"></div>
+      <h3 id="detail-address"></h3>
+      <p class="subline" id="detail-subline"></p>
+      <p class="acq-needs-numbers-note hidden" id="detail-needs-numbers">⚠ Needs numbers added</p>
+
+      <div class="section-label">Progress</div>
+      <p class="subline" style="margin:0 0 4px;">Click a step to move this property to that stage.</p>
+      <div class="timeline" id="detail-timeline"></div>
+
+      <div class="section-label">Key figures</div>
+      <div class="acq-stats-full" id="detail-stats"></div>
+
+      <div class="section-label">Notes</div>
+      <p class="subline" id="detail-notes" style="white-space:pre-wrap;"></p>
+
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="detail-close-btn">Close</button>
+        <button type="button" class="secondary" id="detail-delete-btn">Delete</button>
+        <button type="button" class="secondary" id="detail-edit-btn">Edit details</button>
+        <button type="button" class="secondary" id="detail-reopen-btn">Reopen</button>
+        <button type="button" id="detail-complete-btn">Complete → Refurb &amp; Payment</button>
+      </div>
+    </div>
   </div>
 
   <div id="portfolio-modal-backdrop" class="hidden">

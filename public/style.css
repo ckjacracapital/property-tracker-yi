@@ -648,6 +648,217 @@ body.login-page {
   white-space: nowrap;
 }
 
+/* Acquisitions & Legals: image-forward boxes (scoped to this page only —
+   other pages keep the compact row layout above). */
+
+.acq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.acq-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--jacra-chartreuse);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+
+.acq-card:hover {
+  box-shadow: 0 4px 14px rgba(30, 43, 58, 0.12);
+}
+
+.acq-card.completed-card { opacity: 0.9; border-left: 3px solid var(--jacra-navy); }
+.acq-card.priority-card { background: #fff6cc; border: 1px solid #e8d27a; border-left: 3px solid #e8c93a; }
+
+.acq-card-image {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.acq-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.acq-card-image.acq-no-image {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.acq-card-body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.acq-card-body h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.acq-card-body .subline {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.acq-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.acq-stat {
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 6px 6px;
+  text-align: center;
+}
+
+.acq-stat-value {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--jacra-navy);
+}
+
+.acq-stat-value.empty {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.acq-stat-label {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 1px;
+}
+
+.acq-needs-numbers-note {
+  background: #fdecea;
+  color: var(--jacra-jasper);
+  border: 1px solid #f3c8c1;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  margin: 2px 0 0;
+}
+
+.acq-needs-numbers-note.hidden { display: none; }
+
+/* Detail / timeline modal */
+
+.detail-modal {
+  width: 520px;
+}
+
+.acq-detail-image {
+  aspect-ratio: 16 / 8;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.acq-stats-full {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.timeline {
+  display: flex;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding: 6px 2px 10px;
+  gap: 0;
+}
+
+.timeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 0 70px;
+  min-width: 70px;
+  position: relative;
+  cursor: pointer;
+  padding-top: 2px;
+}
+
+.timeline-step::before {
+  content: '';
+  position: absolute;
+  top: 11px;
+  left: -50%;
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+  z-index: 0;
+}
+
+.timeline-step:first-child::before { display: none; }
+
+.timeline-step.done::before { background: var(--jacra-chartreuse); }
+
+.timeline-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--border);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.timeline-step.done .timeline-dot {
+  background: var(--jacra-chartreuse);
+  border-color: var(--jacra-chartreuse);
+  color: var(--jacra-navy);
+}
+
+.timeline-step.active .timeline-dot {
+  background: var(--jacra-navy);
+  border-color: var(--jacra-navy);
+  color: #fff;
+}
+
+.timeline-label {
+  font-size: 10px;
+  text-align: center;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.2;
+  max-width: 76px;
+}
+
+.timeline-step.active .timeline-label {
+  color: var(--jacra-navy);
+  font-weight: 700;
+}
+
 @media (max-width: 700px) {
   .modal .row { grid-template-columns: 1fr; }
   .week-grid { grid-template-columns: repeat(2, 1fr); }
@@ -663,4 +874,5 @@ body.login-page {
   .card .actions {
     margin-left: 0;
   }
+  .detail-modal { width: 100%; }
 }

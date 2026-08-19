@@ -2,12 +2,31 @@ const STAGE = 'acquisitions';
 const GROUP = 'acquisitions';
 
 const GROUP_FIELDS = [
-  'status', 'pictures', 'floorplan', 'refurbRequired', 'agentName', 'agentContact',
+  'status', 'pictureUrl', 'pictures', 'floorplan', 'refurbRequired', 'agentName', 'agentContact',
   'propertyUsage', 'targetedRent', 'netYield', 'valuationAt8', 'totalCapitalLoan',
   'purchasePrice', 'refurbCost', 'utilities', 'certs', 'yiMargin', 'stampDuty',
   'fees', 'legals', 'comms', 'notes'
 ];
 const CHECKBOX_FIELDS = ['numbersConfirmed', 'priority'];
+
+// Every field that counts as a "deal number" — a box gets the needs-numbers
+// note if any of these are blank.
+const FINANCIAL_FIELDS = [
+  'targetedRent', 'netYield', 'valuationAt8', 'totalCapitalLoan', 'purchasePrice',
+  'refurbCost', 'utilities', 'certs', 'yiMargin', 'stampDuty', 'fees', 'legals', 'comms'
+];
+
+// PROVISIONAL ORDER — Charley is sending the real Jacra pipeline sequence
+// separately; this is a reasonable placeholder in the meantime. Reordering
+// this array is the only change needed once the real order is known.
+const TIMELINE_STEPS = [
+  'Reviewing Numbers', 'Offer', 'Visit', 'Searches', 'Legals',
+  'Needs Initial Checks', 'List', 'Pending SR', 'Listed', 'Allocated'
+];
+
+function missingNumbers(g) {
+  return FINANCIAL_FIELDS.some((f) => g[f] === undefined || g[f] === null || g[f] === '');
+}
 
 let properties = [];
 let portfolios = [];
@@ -64,7 +83,7 @@ function renderSection(title, items, completed) {
     groupEl.appendChild(label);
 
     const cardsEl = document.createElement('div');
-    cardsEl.className = 'cards';
+    cardsEl.className = 'acq-grid';
     for (const p of group.items) cardsEl.appendChild(renderCard(p, completed));
     groupEl.appendChild(cardsEl);
     block.appendChild(groupEl);
@@ -72,62 +91,175 @@ function renderSection(title, items, completed) {
   return block;
 }
 
+function renderCardImage(g) {
+  const imgWrap = document.createElement('div');
+  imgWrap.className = 'acq-card-image';
+  if (g.pictureUrl) {
+    const img = document.createElement('img');
+    img.src = g.pictureUrl;
+    img.alt = '';
+    img.onerror = () => { imgWrap.classList.add('acq-no-image'); imgWrap.textContent = 'No photo'; };
+    imgWrap.appendChild(img);
+  } else {
+    imgWrap.classList.add('acq-no-image');
+    imgWrap.textContent = 'No photo';
+  }
+  return imgWrap;
+}
+
+function statBlock(value, label) {
+  const stat = document.createElement('div');
+  stat.className = 'acq-stat';
+  const valueEl = document.createElement('span');
+  valueEl.className = 'acq-stat-value' + (value ? '' : ' empty');
+  valueEl.textContent = value || '—';
+  const labelEl = document.createElement('span');
+  labelEl.className = 'acq-stat-label';
+  labelEl.textContent = label;
+  stat.appendChild(valueEl);
+  stat.appendChild(labelEl);
+  return stat;
+}
+
 function renderCard(p, completed) {
   const g = p[GROUP] || {};
   const el = document.createElement('div');
-  el.className = 'card' + (completed ? ' completed-card' : '') + (g.priority ? ' priority-card' : '');
+  el.className = 'acq-card' + (completed ? ' completed-card' : '') + (g.priority ? ' priority-card' : '');
+  el.onclick = () => openDetailModal(p);
 
-  const subBits = [g.status, g.propertyUsage, p.bedrooms ? `${p.bedrooms} bed` : ''].filter(Boolean).join(' · ');
-  const figures = [];
-  if (g.priority) figures.push('★ Priority');
-  if (g.numbersConfirmed) figures.push('Numbers confirmed');
-  if (g.purchasePrice) figures.push(`£${Number(g.purchasePrice).toLocaleString()} purchase`);
-  if (g.targetedRent) figures.push(`£${Number(g.targetedRent).toLocaleString()} rent p/a`);
-  if (g.netYield) figures.push(`${g.netYield}% yield`);
-  if (g.agentName) figures.push(g.agentName);
+  el.appendChild(renderCardImage(g));
 
-  el.innerHTML = `<h3></h3><p class="subline"></p><div class="figures"></div><div class="actions"></div>`;
-  el.querySelector('h3').textContent = p.propertyAddress || '(no address)';
-  el.querySelector('.subline').textContent = subBits;
-  const figuresEl = el.querySelector('.figures');
-  figures.forEach((f) => {
-    const span = document.createElement('span');
-    span.textContent = f;
-    figuresEl.appendChild(span);
-  });
+  const body = document.createElement('div');
+  body.className = 'acq-card-body';
 
-  const actions = el.querySelector('.actions');
+  const h3 = document.createElement('h3');
+  h3.textContent = p.propertyAddress || '(no address)';
+  body.appendChild(h3);
 
-  if (completed) {
-    const when = p.stageHistory[STAGE] ? new Date(p.stageHistory[STAGE]).toLocaleDateString() : '';
-    const doneNote = document.createElement('span');
-    doneNote.className = 'subline';
-    doneNote.style.margin = '0';
-    doneNote.textContent = `Completed ${when}`;
-    actions.appendChild(doneNote);
+  const subBits = [g.status, g.priority ? '★ Priority' : '', p.bedrooms ? `${p.bedrooms} bed` : ''].filter(Boolean).join(' · ');
+  const sub = document.createElement('p');
+  sub.className = 'subline';
+  sub.textContent = subBits;
+  body.appendChild(sub);
 
-    const reopenBtn = document.createElement('button');
-    reopenBtn.className = 'secondary';
-    reopenBtn.textContent = 'Reopen';
-    reopenBtn.onclick = () => reopen(p.id);
-    actions.appendChild(reopenBtn);
-  } else {
-    const completeBtn = document.createElement('button');
-    completeBtn.textContent = 'Complete → Refurb & Payment';
-    completeBtn.onclick = () => completeStage(p.id);
-    actions.appendChild(completeBtn);
+  const stats = document.createElement('div');
+  stats.className = 'acq-stats';
+  stats.appendChild(statBlock(g.purchasePrice ? `£${Number(g.purchasePrice).toLocaleString()}` : '', 'Purchase'));
+  stats.appendChild(statBlock(g.targetedRent ? `£${Number(g.targetedRent).toLocaleString()}` : '', 'Rent p/a'));
+  stats.appendChild(statBlock(g.netYield ? `${g.netYield}%` : '', 'Yield'));
+  body.appendChild(stats);
 
-    const editBtn = document.createElement('button');
-    editBtn.className = 'secondary';
-    editBtn.textContent = 'Edit';
-    editBtn.onclick = () => openModal(p);
-    actions.appendChild(editBtn);
+  if (missingNumbers(g)) {
+    const note = document.createElement('p');
+    note.className = 'acq-needs-numbers-note';
+    note.textContent = '⚠ Needs numbers added';
+    body.appendChild(note);
   }
 
-  appendDeleteButton(actions, () => deleteProperty(p.id));
-
+  el.appendChild(body);
   return el;
 }
+
+// --- Detail / timeline modal ---
+
+const DETAIL_STAT_FIELDS = [
+  ['purchasePrice', 'Purchase Price'], ['targetedRent', 'Rent p/a'], ['netYield', 'Net Yield'],
+  ['valuationAt8', 'Valuation @8%'], ['totalCapitalLoan', 'Total Capital Loan'], ['refurbCost', 'Refurb Cost'],
+  ['stampDuty', 'Stamp Duty'], ['fees', 'Fees'], ['legals', 'Legals'],
+  ['comms', 'Comms'], ['utilities', 'Utilities'], ['certs', 'Certs'], ['yiMargin', 'YI Margin']
+];
+
+const detailModalBackdrop = document.getElementById('detail-modal-backdrop');
+let detailPropertyId = null;
+
+function formatStatValue(field, value) {
+  if (value === undefined || value === null || value === '') return '';
+  if (field === 'netYield') return `${value}%`;
+  return `£${Number(value).toLocaleString()}`;
+}
+
+function renderTimeline(currentStatus, propertyId) {
+  const el = document.getElementById('detail-timeline');
+  el.innerHTML = '';
+  const currentIdx = TIMELINE_STEPS.indexOf(currentStatus);
+  TIMELINE_STEPS.forEach((step, i) => {
+    const stepEl = document.createElement('div');
+    stepEl.className = 'timeline-step' + (i === currentIdx ? ' active' : '') + (currentIdx >= 0 && i < currentIdx ? ' done' : '');
+    stepEl.innerHTML = `<span class="timeline-dot">${i === currentIdx ? '●' : ''}</span><span class="timeline-label">${step}</span>`;
+    stepEl.onclick = (e) => {
+      e.stopPropagation();
+      setStatus(propertyId, step);
+    };
+    el.appendChild(stepEl);
+  });
+}
+
+async function setStatus(id, status) {
+  await fetch(`/api/properties/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ [GROUP]: { status } })
+  });
+  await loadAll();
+  const refreshed = properties.find((p) => p.id === id);
+  if (refreshed) openDetailModal(refreshed);
+}
+
+function openDetailModal(p) {
+  const g = p[GROUP] || {};
+  detailPropertyId = p.id;
+
+  const imageEl = document.getElementById('detail-image');
+  imageEl.innerHTML = '';
+  imageEl.className = 'acq-card-image acq-detail-image';
+  if (g.pictureUrl) {
+    const img = document.createElement('img');
+    img.src = g.pictureUrl;
+    img.alt = '';
+    img.onerror = () => { imageEl.classList.add('acq-no-image'); imageEl.textContent = 'No photo'; };
+    imageEl.appendChild(img);
+  } else {
+    imageEl.classList.add('acq-no-image');
+    imageEl.textContent = 'No photo';
+  }
+
+  document.getElementById('detail-address').textContent = p.propertyAddress || '(no address)';
+  document.getElementById('detail-subline').textContent = [g.propertyUsage, p.bedrooms ? `${p.bedrooms} bed` : '', g.agentName].filter(Boolean).join(' · ');
+
+  const needsNumbersEl = document.getElementById('detail-needs-numbers');
+  needsNumbersEl.classList.toggle('hidden', !missingNumbers(g));
+
+  renderTimeline(g.status, p.id);
+
+  const statsEl = document.getElementById('detail-stats');
+  statsEl.innerHTML = '';
+  for (const [field, label] of DETAIL_STAT_FIELDS) {
+    statsEl.appendChild(statBlock(formatStatValue(field, g[field]), label));
+  }
+
+  document.getElementById('detail-notes').textContent = g.notes || 'No notes.';
+
+  const completed = isCompletedIn(p, STAGE);
+  document.getElementById('detail-complete-btn').style.display = completed ? 'none' : '';
+  document.getElementById('detail-reopen-btn').style.display = completed ? '' : 'none';
+
+  detailModalBackdrop.classList.remove('hidden');
+}
+
+function closeDetailModal() {
+  detailModalBackdrop.classList.add('hidden');
+  detailPropertyId = null;
+}
+
+document.getElementById('detail-close-btn').onclick = closeDetailModal;
+document.getElementById('detail-delete-btn').onclick = () => { if (detailPropertyId) deleteProperty(detailPropertyId); closeDetailModal(); };
+document.getElementById('detail-complete-btn').onclick = () => { if (detailPropertyId) completeStage(detailPropertyId); closeDetailModal(); };
+document.getElementById('detail-reopen-btn').onclick = () => { if (detailPropertyId) reopen(detailPropertyId); closeDetailModal(); };
+document.getElementById('detail-edit-btn').onclick = () => {
+  const p = properties.find((x) => x.id === detailPropertyId);
+  closeDetailModal();
+  if (p) openModal(p);
+};
 
 async function completeStage(id) {
   await fetch(`/api/properties/${id}/complete`, { method: 'POST' });
