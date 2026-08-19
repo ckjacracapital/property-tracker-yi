@@ -824,6 +824,12 @@ body.login-page {
   overflow-x: auto;
   padding: 6px 2px 10px;
   gap: 0;
+  /* Without this, being a scroll container inside .modal's column flex
+     layout gives it an automatic min-height of 0, so when the modal's
+     content exceeds max-height:90vh the browser shrinks this element down
+     to a sliver instead of letting .modal scroll — clipping every dot and
+     hiding all the labels beneath them. */
+  flex-shrink: 0;
 }
 
 .timeline-step {
