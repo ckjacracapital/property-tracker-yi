@@ -351,6 +351,26 @@ async function handleBulkImport(req: Request, session: any) {
   return Response.json({ created: created.length }, { status: 201 });
 }
 
+// One read, N in-memory removals, one write — mirrors handleBulkImport.
+// Deleting N properties one at a time (each its own read-modify-write) can
+// race with itself the same way sequential creates can: a delete's write may
+// not yet be visible to the very next delete's read, so that next write can
+// silently resurrect the item just removed.
+async function handleBulkDelete(req: Request, session: any) {
+  if (!isAdmin(session)) return Response.json({ error: "forbidden" }, { status: 403 });
+  const body = await req.json();
+  const ids = Array.isArray(body.ids) ? body.ids.filter((id: any) => typeof id === "string") : [];
+  if (ids.length === 0) return Response.json({ error: "no ids" }, { status: 400 });
+
+  const properties = await loadProperties();
+  const idSet = new Set(ids);
+  const removed = properties.filter((p) => idSet.has(p.id));
+  const next = properties.filter((p) => !idSet.has(p.id));
+  await saveProperties(next);
+  await logEvent(session.username, "bulk_delete", { count: removed.length, addresses: removed.map((p) => p.propertyAddress) });
+  return Response.json({ deleted: removed.length });
+}
+
 async function handleProperties(req: Request, id: string, action: string, session: any) {
   if (req.method === "GET" && !id) {
     const properties = await loadProperties();
@@ -790,6 +810,9 @@ export default async (req: Request, context: Context) => {
     }
     if (resource === "properties" && parts[1] === "bulk-import") {
       return await handleBulkImport(req, session);
+    }
+    if (resource === "properties" && parts[1] === "bulk-delete") {
+      return await handleBulkDelete(req, session);
     }
     if (resource === "properties") {
       return await handleProperties(req, parts[1], parts[2], session);
