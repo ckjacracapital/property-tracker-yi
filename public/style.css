@@ -379,6 +379,54 @@ main {
 
 .modal input[type="checkbox"] { width: auto; }
 
+.photo-dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.photo-dropzone:hover, .photo-dropzone.dragover {
+  border-color: var(--jacra-chartreuse);
+  background: rgba(196, 214, 0, 0.08);
+}
+
+.photo-dropzone-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.photo-dropzone-hint.hidden { display: none; }
+
+.photo-preview { width: 100%; }
+.photo-preview.hidden { display: none; }
+
+.photo-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 150px;
+  margin: 0 auto;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.photo-url-input { font-size: 12px !important; }
+
+.photo-upload-status {
+  font-size: 11px;
+  color: var(--muted);
+  min-height: 14px;
+  margin: 0;
+}
+
+.photo-upload-status.error { color: #c0392b; }
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;

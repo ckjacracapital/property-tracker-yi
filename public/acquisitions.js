@@ -360,8 +360,102 @@ function openModal(property) {
       if (el) el.checked = Boolean(g[field]);
     }
   }
+  updatePhotoPreview(property ? (property[GROUP] || {}).pictureUrl : '');
+  setPhotoStatus('');
   modalBackdrop.classList.remove('hidden');
 }
+
+// --- Photo upload (drag & drop / click-to-browse) ---
+
+const photoDropzone = document.getElementById('photo-dropzone');
+const photoFileInput = document.getElementById('f-photo-file');
+const photoPreview = document.getElementById('photo-preview');
+const photoPreviewImg = document.getElementById('photo-preview-img');
+const photoDropzoneHint = document.getElementById('photo-dropzone-hint');
+const photoUrlInput = document.getElementById('f-pictureUrl');
+const photoStatusEl = document.getElementById('photo-upload-status');
+
+function setPhotoStatus(text, isError) {
+  photoStatusEl.textContent = text;
+  photoStatusEl.classList.toggle('error', Boolean(isError));
+}
+
+function updatePhotoPreview(url) {
+  if (url) {
+    photoPreviewImg.src = url;
+    photoPreview.classList.remove('hidden');
+    photoDropzoneHint.classList.add('hidden');
+  } else {
+    photoPreviewImg.src = '';
+    photoPreview.classList.add('hidden');
+    photoDropzoneHint.classList.remove('hidden');
+  }
+}
+
+async function uploadPhoto(file) {
+  if (!file.type || !file.type.startsWith('image/')) {
+    setPhotoStatus('Please choose an image file.', true);
+    return;
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    setPhotoStatus('Image is too large (max 8MB).', true);
+    return;
+  }
+  setPhotoStatus('Uploading…');
+  try {
+    const res = await fetch('/api/images', {
+      method: 'POST',
+      headers: { 'Content-Type': file.type },
+      body: file
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'Upload failed');
+    }
+    const data = await res.json();
+    photoUrlInput.value = data.url;
+    updatePhotoPreview(data.url);
+    setPhotoStatus('Photo uploaded.');
+  } catch (err) {
+    setPhotoStatus(err.message || 'Upload failed.', true);
+  }
+}
+
+photoDropzone.onclick = () => photoFileInput.click();
+
+photoFileInput.onchange = () => {
+  if (photoFileInput.files[0]) uploadPhoto(photoFileInput.files[0]);
+  photoFileInput.value = '';
+};
+
+['dragenter', 'dragover'].forEach((evt) => {
+  photoDropzone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    photoDropzone.classList.add('dragover');
+  });
+});
+
+['dragleave', 'dragend'].forEach((evt) => {
+  photoDropzone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    photoDropzone.classList.remove('dragover');
+  });
+});
+
+photoDropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  photoDropzone.classList.remove('dragover');
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) uploadPhoto(file);
+});
+
+photoUrlInput.addEventListener('input', () => {
+  updatePhotoPreview(photoUrlInput.value.trim());
+  setPhotoStatus('');
+});
 
 function closeModal() {
   modalBackdrop.classList.add('hidden');

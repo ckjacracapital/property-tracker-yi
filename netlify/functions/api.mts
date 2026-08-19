@@ -51,6 +51,12 @@ function propertiesStore() {
   return getStore("property-tracker");
 }
 
+function imagesStore() {
+  return getStore("property-images");
+}
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+
 async function loadProperties(): Promise<any[]> {
   const data = await propertiesStore().get(PROPERTIES_KEY, { type: "json" });
   return data || [];
@@ -369,6 +375,36 @@ async function handleBulkDelete(req: Request, session: any) {
   await saveProperties(next);
   await logEvent(session.username, "bulk_delete", { count: removed.length, addresses: removed.map((p) => p.propertyAddress) });
   return Response.json({ deleted: removed.length });
+}
+
+// Uploaded photo goes straight in the request body (no multipart parsing
+// needed) — the client sends the raw File as the fetch body with its
+// content-type header, so we just stream those bytes into blob storage
+// under a random id and hand back the URL to fetch it from.
+async function handleImageUpload(req: Request, session: any) {
+  const contentType = req.headers.get("content-type") || "";
+  if (!contentType.startsWith("image/")) {
+    return Response.json({ error: "file must be an image" }, { status: 400 });
+  }
+  const buf = await req.arrayBuffer();
+  if (buf.byteLength === 0) return Response.json({ error: "empty file" }, { status: 400 });
+  if (buf.byteLength > MAX_IMAGE_BYTES) {
+    return Response.json({ error: "image too large (max 8MB)" }, { status: 413 });
+  }
+  const id = crypto.randomUUID();
+  await imagesStore().set(id, buf, { metadata: { contentType } });
+  await logEvent(session.username, "image_uploaded", { id });
+  return Response.json({ id, url: `/api/images/${id}` }, { status: 201 });
+}
+
+async function handleImageGet(id: string) {
+  const result = await imagesStore().getWithMetadata(id, { type: "arrayBuffer" });
+  if (!result) return Response.json({ error: "not found" }, { status: 404 });
+  const contentType = (result.metadata as any)?.contentType || "application/octet-stream";
+  return new Response(result.data, {
+    status: 200,
+    headers: { "Content-Type": contentType, "Cache-Control": "private, max-age=31536000, immutable" }
+  });
 }
 
 async function handleProperties(req: Request, id: string, action: string, session: any) {
@@ -806,6 +842,11 @@ export default async (req: Request, context: Context) => {
     if (resource === "activity") {
       if (parts[1] === "ping" && req.method === "POST") return await handlePing(req, session);
       if (!parts[1] && req.method === "GET") return await handleActivityDashboard(session);
+      return Response.json({ error: "not found" }, { status: 404 });
+    }
+    if (resource === "images") {
+      if (req.method === "POST" && !parts[1]) return await handleImageUpload(req, session);
+      if (req.method === "GET" && parts[1]) return await handleImageGet(parts[1]);
       return Response.json({ error: "not found" }, { status: 404 });
     }
     if (resource === "properties" && parts[1] === "bulk-import") {

@@ -45,7 +45,18 @@
         <select id="f-portfolioId"></select>
       </label>
       <label>Property address <input type="text" id="f-propertyAddress" required></label>
-      <label>Picture URL <input type="text" id="f-pictureUrl" placeholder="https://... (link to a photo)"></label>
+      <label>Property photo</label>
+      <div id="photo-dropzone" class="photo-dropzone">
+        <div id="photo-preview" class="photo-preview hidden">
+          <img id="photo-preview-img" alt="">
+        </div>
+        <div id="photo-dropzone-hint" class="photo-dropzone-hint">
+          Drag &amp; drop a photo here, or click to browse
+        </div>
+        <input type="file" id="f-photo-file" accept="image/*" class="photo-file-input" hidden>
+      </div>
+      <input type="text" id="f-pictureUrl" class="photo-url-input" placeholder="...or paste an image URL here">
+      <p class="photo-upload-status" id="photo-upload-status"></p>
       <div class="row">
         <label>Status
           <select id="f-status">
