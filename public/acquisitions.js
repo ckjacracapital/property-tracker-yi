@@ -163,7 +163,12 @@ function renderCard(p, completed) {
   h3.textContent = p.propertyAddress || '(no address)';
   body.appendChild(h3);
 
-  const subBits = [g.status, g.priority ? '★ Priority' : '', p.bedrooms ? `${p.bedrooms} bed` : ''].filter(Boolean).join(' · ');
+  const subBits = [
+    g.status,
+    p.bedrooms ? `${p.bedrooms} bed` : '',
+    g.propertyUsage,
+    g.priority ? '★ Priority' : ''
+  ].filter(Boolean).join(' · ');
   const sub = document.createElement('p');
   sub.className = 'subline';
   sub.textContent = subBits;
@@ -171,7 +176,7 @@ function renderCard(p, completed) {
 
   const stats = document.createElement('div');
   stats.className = 'acq-stats';
-  stats.appendChild(statBlock(g.purchasePrice ? `£${Number(g.purchasePrice).toLocaleString()}` : '', 'Purchase'));
+  stats.appendChild(statBlock(g.totalCapitalLoan ? `£${Number(g.totalCapitalLoan).toLocaleString()}` : '', 'Total Capital Loan'));
   stats.appendChild(statBlock(g.targetedRent ? `£${Number(g.targetedRent).toLocaleString()}` : '', 'Rent p/a'));
   stats.appendChild(statBlock(g.netYield ? `${g.netYield}%` : '', 'Yield'));
   body.appendChild(stats);
