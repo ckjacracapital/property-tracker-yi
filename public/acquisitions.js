@@ -51,7 +51,7 @@ function render() {
   const completedItems = properties.filter((p) => isCompletedIn(p, STAGE));
 
   panelsEl.appendChild(renderMasthead());
-  panelsEl.appendChild(renderToolbar(activeItems));
+  panelsEl.appendChild(renderToolbar(completedItems));
 
   panelsEl.appendChild(renderSection('Active', activeItems, false));
   panelsEl.appendChild(renderSection('Completed', completedItems, true));
@@ -91,13 +91,13 @@ function renderMasthead() {
   return wrap;
 }
 
-function renderToolbar(activeItems) {
+function renderToolbar(completedItems) {
   const wrap = document.createElement('div');
   wrap.className = 'acq-reg-toolbar';
 
   let totalCapital = 0;
   let totalRent = 0;
-  for (const p of activeItems) {
+  for (const p of completedItems) {
     const g = p[GROUP] || {};
     if (g.totalCapitalLoan) totalCapital += Number(g.totalCapitalLoan) || 0;
     if (g.targetedRent) totalRent += Number(g.targetedRent) || 0;
