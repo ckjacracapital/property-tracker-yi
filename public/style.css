@@ -6,6 +6,7 @@
   --jacra-grey: #959491;      /* "Battleship Grey" */
   --jacra-jasper: #c05738;    /* used for warnings/flags */
   --jacra-khaki: #b6a993;
+  --jacra-khaki-text: #7a6c50; /* khaki darkened for legible small text/labels */
 
   --bg: #f4f5f7;
   --card-bg: #ffffff;
@@ -368,6 +369,12 @@ main {
 }
 
 .modal .section-label:first-of-type { border-top: none; margin-top: 0; }
+
+.modal p.subline {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
 
 .modal .row {
   display: grid;
@@ -753,65 +760,10 @@ body.login-page {
   white-space: nowrap;
 }
 
-/* Acquisitions & Legals: image-forward boxes (scoped to this page only —
-   other pages keep the compact row layout above). */
-
-.acq-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
-}
-
-.acq-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  background: var(--card-bg);
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  overflow: hidden;
-  cursor: pointer;
-  box-shadow: 0 1px 2px rgba(20, 24, 32, 0.04);
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-.acq-card:hover {
-  box-shadow: 0 6px 16px rgba(20, 24, 32, 0.09);
-  transform: translateY(-1px);
-}
-
-.acq-card.completed-card { opacity: 1; }
-
-.acq-card.completed-card::after {
-  content: 'Completed';
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: rgba(30, 43, 58, 0.85);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  padding: 3px 8px;
-  border-radius: 4px;
-}
-
-.acq-card.priority-card { background: var(--card-bg); border: 1px solid var(--border); }
-
-.acq-card.priority-card::before {
-  content: '★ Priority';
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: var(--jacra-navy);
-  color: var(--jacra-chartreuse);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  padding: 3px 8px;
-  border-radius: 4px;
-  z-index: 1;
-}
+/* Acquisitions & Legals: data-room register table (scoped to this page only
+   via acq-reg- prefixed classes — other pages keep the compact row layout
+   above). .acq-card-image is kept below since the detail modal still uses
+   it for the property photo. */
 
 .acq-card-image {
   width: 100%;
@@ -836,26 +788,6 @@ body.login-page {
   font-weight: 500;
 }
 
-.acq-card-body {
-  padding: 14px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.acq-card-body h3 {
-  margin: 0;
-  font-size: 14.5px;
-  font-weight: 700;
-  color: var(--jacra-navy);
-}
-
-.acq-card-body .subline {
-  margin: 0 0 2px;
-  font-size: 11.5px;
-  color: var(--muted);
-}
-
 .subline-label {
   font-size: 10px;
   font-weight: 700;
@@ -865,70 +797,297 @@ body.login-page {
   margin-right: 4px;
 }
 
-.acq-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin: 6px 0 2px;
-}
-
-.acq-stat {
-  background: #f7f8fa;
-  border-radius: 6px;
-  padding: 8px 6px;
-  text-align: center;
-}
-
-.acq-stat.missing {
-  background: #fdecea;
-  border: 1px dashed #e3a49c;
-}
-
-.acq-stat.missing .acq-stat-label {
-  color: var(--jacra-jasper);
-  font-weight: 700;
-}
-
-.acq-stat-value {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--jacra-navy);
-  letter-spacing: -0.01em;
-}
-
-.acq-stat-value.empty {
-  color: var(--jacra-jasper);
-  font-weight: 600;
-  font-size: 11px;
-}
-
-.acq-stat-label {
-  display: block;
-  font-size: 10px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin-top: 1px;
-}
-
 .acq-needs-numbers-note {
-  background: #fdecea;
   color: var(--jacra-jasper);
-  border: 1px solid #f3c8c1;
-  border-radius: 5px;
-  padding: 4px 8px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   margin: 2px 0 0;
 }
 
 .acq-needs-numbers-note.hidden { display: none; }
 
+.acq-numbers-reviewed-note {
+  color: #5c6900;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 2px 0 0;
+}
+
+.acq-numbers-reviewed-note.hidden { display: none; }
+
+.acq-reg-masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.acq-reg-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--jacra-navy);
+}
+
+.acq-reg-title::before {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  background: var(--jacra-chartreuse);
+  border-radius: 2px;
+}
+
+.acq-reg-subtitle {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.acq-reg-meta {
+  text-align: right;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.acq-reg-meta strong {
+  color: var(--jacra-khaki-text);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.acq-reg-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.acq-reg-stat-chip {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.acq-reg-stat-chip b { color: var(--jacra-navy); font-weight: 600; font-size: 12.5px; }
+
+.acq-reg-stat-chip.is-headline {
+  background: var(--jacra-navy);
+  border-color: var(--jacra-navy);
+}
+
+.acq-reg-stat-chip.is-headline span { color: rgba(255, 255, 255, 0.6); }
+.acq-reg-stat-chip.is-headline b { color: var(--jacra-chartreuse); font-size: 13.5px; }
+
+.acq-register {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--card-bg);
+  box-shadow: 0 1px 2px rgba(20, 24, 32, 0.04);
+  margin-bottom: 8px;
+}
+
+.acq-register-scroll { overflow-x: auto; }
+
+.acq-register table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 880px;
+}
+
+.acq-register thead th {
+  background: var(--jacra-navy);
+  color: #fff;
+  text-align: left;
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 10px 14px;
+  white-space: nowrap;
+  border-bottom: 2px solid var(--jacra-chartreuse);
+}
+
+.acq-register thead th.acq-reg-num { text-align: right; }
+.acq-register thead th.acq-reg-thumb-col { width: 52px; }
+.acq-register thead th.acq-reg-rev-col { width: 104px; text-align: center; white-space: normal; line-height: 1.3; }
+
+.acq-reg-group-row td {
+  background: #f7f8fa;
+  padding: 8px 14px 7px 11px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  box-shadow: inset 3px 0 0 var(--jacra-chartreuse);
+}
+
+.acq-reg-group-row .count {
+  font-weight: 500;
+  color: var(--jacra-grey);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 6px;
+}
+
+.acq-reg-stage-row td {
+  padding: 6px 14px 6px 24px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--jacra-grey);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.acq-reg-entry {
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.acq-reg-entry:hover { background: #f7f8fa; }
+.acq-reg-entry:last-child { border-bottom: none; }
+.acq-reg-entry.acq-reg-flagged { box-shadow: inset 2px 0 0 var(--jacra-jasper); }
+
+.acq-register td {
+  padding: 9px 14px;
+  font-size: 12.5px;
+  vertical-align: middle;
+}
+
+.acq-reg-thumb {
+  width: 38px;
+  height: 38px;
+  border-radius: 3px;
+  object-fit: cover;
+  display: block;
+  background: var(--bg);
+}
+
+.acq-reg-thumb-empty {
+  width: 38px;
+  height: 38px;
+  border-radius: 3px;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+}
+
+.acq-reg-addr-cell { min-width: 210px; }
+
+.acq-reg-addr {
+  font-weight: 600;
+  color: var(--jacra-navy);
+  font-size: 13px;
+}
+
+.acq-reg-flags {
+  display: inline-flex;
+  gap: 5px;
+  margin-left: 7px;
+  vertical-align: middle;
+}
+
+.acq-reg-tag {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 1.5px 5px;
+  border-radius: 2px;
+}
+
+.acq-reg-tag.priority { background: var(--jacra-navy); color: var(--jacra-chartreuse); }
+.acq-reg-tag.needs-data { background: var(--jacra-jasper); color: #fff; }
+
+.acq-reg-usage { color: var(--muted); font-size: 12px; }
+
+.acq-reg-status-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 3px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.acq-reg-status-pill.is-complete {
+  background: var(--jacra-navy);
+  border-color: var(--jacra-navy);
+  color: var(--jacra-chartreuse);
+}
+
+.acq-reg-num-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.acq-reg-num-cell.empty {
+  color: var(--jacra-jasper);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.acq-reg-num-cell .unit { color: var(--jacra-grey); font-size: 10.5px; margin-left: 2px; }
+.acq-reg-yield-cell { font-weight: 600; }
+
+.acq-reg-rev-cell { text-align: center; }
+
+.acq-reg-rev-check { color: #5c6900; font-size: 15px; font-weight: 700; }
+.acq-reg-rev-dash { color: var(--border); font-size: 13px; }
+
+.acq-reg-footnote {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  margin-bottom: 28px;
+  font-size: 11px;
+  color: var(--jacra-grey);
+}
+
+.acq-reg-footnote .legend { display: flex; gap: 16px; align-items: center; }
+
+.acq-reg-legend-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
 /* Detail / timeline modal */
 
 .detail-modal {
-  width: 520px;
+  width: 560px;
 }
 
 .acq-detail-image {
@@ -938,9 +1097,44 @@ body.login-page {
 }
 
 .acq-stats-full {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.acq-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+}
+
+.acq-detail-row:last-child { border-bottom: none; }
+
+.acq-detail-row .label {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.acq-detail-row .value {
+  color: var(--jacra-navy);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.acq-detail-row.missing .value {
+  color: var(--jacra-jasper);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .timeline {

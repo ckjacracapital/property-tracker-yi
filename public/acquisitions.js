@@ -50,8 +50,102 @@ function render() {
   const activeItems = properties.filter((p) => isActiveIn(p, STAGE));
   const completedItems = properties.filter((p) => isCompletedIn(p, STAGE));
 
+  panelsEl.appendChild(renderMasthead());
+  panelsEl.appendChild(renderToolbar(activeItems));
+
   panelsEl.appendChild(renderSection('Active', activeItems, false));
   panelsEl.appendChild(renderSection('Completed', completedItems, true));
+
+  panelsEl.appendChild(renderFootnote(activeItems.length + completedItems.length));
+}
+
+function renderMasthead() {
+  const wrap = document.createElement('div');
+  wrap.className = 'acq-reg-masthead';
+
+  const left = document.createElement('div');
+  const title = document.createElement('p');
+  title.className = 'acq-reg-title';
+  title.textContent = 'Acquisitions Register';
+  const sub = document.createElement('p');
+  sub.className = 'acq-reg-subtitle';
+  sub.textContent = 'Acquisitions & Legals — sourcing through completion';
+  left.appendChild(title);
+  left.appendChild(sub);
+
+  const meta = document.createElement('div');
+  meta.className = 'acq-reg-meta';
+  const preparedFor = document.createElement('div');
+  preparedFor.innerHTML = '<strong>Prepared for</strong> ';
+  preparedFor.appendChild(document.createTextNode('Jacra Capital'));
+  const asOf = document.createElement('div');
+  asOf.innerHTML = '<strong>As of</strong> ';
+  asOf.appendChild(document.createTextNode(new Date().toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  })));
+  meta.appendChild(preparedFor);
+  meta.appendChild(asOf);
+
+  wrap.appendChild(left);
+  wrap.appendChild(meta);
+  return wrap;
+}
+
+function renderToolbar(activeItems) {
+  const wrap = document.createElement('div');
+  wrap.className = 'acq-reg-toolbar';
+
+  let totalCapital = 0;
+  let totalRent = 0;
+  for (const p of activeItems) {
+    const g = p[GROUP] || {};
+    if (g.totalCapitalLoan) totalCapital += Number(g.totalCapitalLoan) || 0;
+    if (g.targetedRent) totalRent += Number(g.targetedRent) || 0;
+  }
+  const blendedYield = totalCapital > 0 ? (totalRent / totalCapital) * 100 : 0;
+
+  const capChip = document.createElement('span');
+  capChip.className = 'acq-reg-stat-chip';
+  const capLabel = document.createElement('span');
+  capLabel.textContent = 'Capital deployed';
+  const capValue = document.createElement('b');
+  capValue.textContent = `£${totalCapital.toLocaleString()}`;
+  capChip.appendChild(capLabel);
+  capChip.appendChild(capValue);
+
+  const yieldChip = document.createElement('span');
+  yieldChip.className = 'acq-reg-stat-chip is-headline';
+  const yieldLabel = document.createElement('span');
+  yieldLabel.textContent = 'Blended yield';
+  const yieldValue = document.createElement('b');
+  yieldValue.textContent = `${blendedYield.toFixed(1)}%`;
+  yieldChip.appendChild(yieldLabel);
+  yieldChip.appendChild(yieldValue);
+
+  wrap.appendChild(capChip);
+  wrap.appendChild(yieldChip);
+  return wrap;
+}
+
+function renderFootnote(totalCount) {
+  const wrap = document.createElement('div');
+  wrap.className = 'acq-reg-footnote';
+
+  const left = document.createElement('span');
+  left.textContent = `${totalCount} ${totalCount === 1 ? 'entry' : 'entries'} · grouped by portfolio, ordered by pipeline stage`;
+
+  const legend = document.createElement('span');
+  legend.className = 'legend';
+  const needsData = document.createElement('span');
+  needsData.innerHTML = '<span class="acq-reg-legend-swatch" style="background:var(--jacra-jasper)"></span>Needs data';
+  const reviewed = document.createElement('span');
+  reviewed.innerHTML = '<span class="acq-reg-rev-check" style="font-size:11px;">&#10003;</span> Numbers reviewed';
+  legend.appendChild(needsData);
+  legend.appendChild(reviewed);
+
+  wrap.appendChild(left);
+  wrap.appendChild(legend);
+  return wrap;
 }
 
 function renderSection(title, items, completed) {
@@ -71,31 +165,69 @@ function renderSection(title, items, completed) {
     return block;
   }
 
+  block.appendChild(renderRegisterTable(items, completed));
+  return block;
+}
+
+function renderRegisterTable(items, completed) {
+  const wrap = document.createElement('div');
+  wrap.className = 'acq-register';
+  const scroll = document.createElement('div');
+  scroll.className = 'acq-register-scroll';
+  const table = document.createElement('table');
+
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr>
+      <th class="acq-reg-thumb-col"></th>
+      <th>Property</th>
+      <th>Status</th>
+      <th>Unit</th>
+      <th>Usage</th>
+      <th class="acq-reg-rev-col">Numbers Reviewed</th>
+      <th class="acq-reg-num">Total capital loan</th>
+      <th class="acq-reg-num">Rent p/a</th>
+      <th class="acq-reg-num">Yield</th>
+    </tr>`;
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
   for (const group of groupByPortfolio(items, portfolios)) {
-    const groupEl = document.createElement('div');
-    groupEl.className = 'portfolio-group';
-    const label = document.createElement('div');
-    label.className = 'portfolio-label';
-    label.textContent = group.portfolio;
-    groupEl.appendChild(label);
+    tbody.appendChild(groupRowEl(group.portfolio, group.items.length));
 
     for (const stageGroup of groupByStage(group.items)) {
-      const stageEl = document.createElement('div');
-      stageEl.className = 'stage-group';
-      const stageLabel = document.createElement('div');
-      stageLabel.className = 'stage-label';
-      stageLabel.innerHTML = `${stageGroup.stage}<span class="count">${stageGroup.items.length}</span>`;
-      stageEl.appendChild(stageLabel);
-
-      const cardsEl = document.createElement('div');
-      cardsEl.className = 'acq-grid';
-      for (const p of stageGroup.items) cardsEl.appendChild(renderCard(p, completed));
-      stageEl.appendChild(cardsEl);
-      groupEl.appendChild(stageEl);
+      tbody.appendChild(stageRowEl(stageGroup.stage));
+      for (const p of stageGroup.items) tbody.appendChild(renderEntryRow(p, completed));
     }
-    block.appendChild(groupEl);
   }
-  return block;
+  table.appendChild(tbody);
+  scroll.appendChild(table);
+  wrap.appendChild(scroll);
+  return wrap;
+}
+
+function groupRowEl(portfolioName, count) {
+  const tr = document.createElement('tr');
+  tr.className = 'acq-reg-group-row';
+  const td = document.createElement('td');
+  td.colSpan = 9;
+  td.appendChild(document.createTextNode(portfolioName));
+  const countSpan = document.createElement('span');
+  countSpan.className = 'count';
+  countSpan.textContent = `${count} ${count === 1 ? 'property' : 'properties'}`;
+  td.appendChild(countSpan);
+  tr.appendChild(td);
+  return tr;
+}
+
+function stageRowEl(stageName) {
+  const tr = document.createElement('tr');
+  tr.className = 'acq-reg-stage-row';
+  const td = document.createElement('td');
+  td.colSpan = 9;
+  td.textContent = stageName;
+  tr.appendChild(td);
+  return tr;
 }
 
 // Splits a portfolio's properties into their sales-progression stages, in
@@ -117,79 +249,119 @@ function groupByStage(items) {
   return result;
 }
 
-function renderCardImage(g) {
-  const imgWrap = document.createElement('div');
-  imgWrap.className = 'acq-card-image';
+function emptyThumbEl() {
+  const div = document.createElement('div');
+  div.className = 'acq-reg-thumb-empty';
+  return div;
+}
+
+function regTagEl(cls, text) {
+  const span = document.createElement('span');
+  span.className = 'acq-reg-tag ' + cls;
+  span.textContent = text;
+  return span;
+}
+
+function regNumCell(value, unitSuffix) {
+  const td = document.createElement('td');
+  td.className = 'acq-reg-num-cell';
+  if (value === undefined || value === null || value === '') {
+    td.classList.add('empty');
+    td.textContent = 'NEEDS DATA';
+    return td;
+  }
+  td.appendChild(document.createTextNode(`£${Number(value).toLocaleString()}`));
+  if (unitSuffix) {
+    const unit = document.createElement('span');
+    unit.className = 'unit';
+    unit.textContent = unitSuffix;
+    td.appendChild(unit);
+  }
+  return td;
+}
+
+function regYieldCell(value) {
+  const td = document.createElement('td');
+  td.className = 'acq-reg-num-cell acq-reg-yield-cell';
+  if (value === undefined || value === null || value === '') {
+    td.classList.add('empty');
+    td.textContent = 'NEEDS DATA';
+  } else {
+    td.textContent = `${value}%`;
+  }
+  return td;
+}
+
+function renderEntryRow(p, completed) {
+  const g = p[GROUP] || {};
+  const tr = document.createElement('tr');
+  tr.className = 'acq-reg-entry' + (missingNumbers(g) ? ' acq-reg-flagged' : '');
+  tr.onclick = () => openDetailModal(p);
+
+  const thumbTd = document.createElement('td');
   if (g.pictureUrl) {
     const img = document.createElement('img');
+    img.className = 'acq-reg-thumb';
     img.src = g.pictureUrl;
     img.alt = '';
-    img.onerror = () => { imgWrap.classList.add('acq-no-image'); imgWrap.textContent = 'No photo'; };
-    imgWrap.appendChild(img);
+    img.onerror = () => { img.remove(); thumbTd.appendChild(emptyThumbEl()); };
+    thumbTd.appendChild(img);
   } else {
-    imgWrap.classList.add('acq-no-image');
-    imgWrap.textContent = 'No photo';
+    thumbTd.appendChild(emptyThumbEl());
   }
-  return imgWrap;
-}
+  tr.appendChild(thumbTd);
 
-function statBlock(value, label) {
-  const stat = document.createElement('div');
-  const isMissing = !value;
-  stat.className = 'acq-stat' + (isMissing ? ' missing' : '');
-  const valueEl = document.createElement('span');
-  valueEl.className = 'acq-stat-value' + (isMissing ? ' empty' : '');
-  valueEl.textContent = value || 'Needs adding';
-  const labelEl = document.createElement('span');
-  labelEl.className = 'acq-stat-label';
-  labelEl.textContent = label;
-  stat.appendChild(valueEl);
-  stat.appendChild(labelEl);
-  return stat;
-}
-
-function renderCard(p, completed) {
-  const g = p[GROUP] || {};
-  const el = document.createElement('div');
-  el.className = 'acq-card' + (completed ? ' completed-card' : '') + (g.priority ? ' priority-card' : '');
-  el.onclick = () => openDetailModal(p);
-
-  el.appendChild(renderCardImage(g));
-
-  const body = document.createElement('div');
-  body.className = 'acq-card-body';
-
-  const h3 = document.createElement('h3');
-  h3.textContent = p.propertyAddress || '(no address)';
-  body.appendChild(h3);
-
-  const subBits = [
-    g.status,
-    p.bedrooms ? `${p.bedrooms} bed` : '',
-    g.propertyUsage,
-    g.priority ? '★ Priority' : ''
-  ].filter(Boolean).join(' · ');
-  const sub = document.createElement('p');
-  sub.className = 'subline';
-  sub.textContent = subBits;
-  body.appendChild(sub);
-
-  const stats = document.createElement('div');
-  stats.className = 'acq-stats';
-  stats.appendChild(statBlock(g.totalCapitalLoan ? `£${Number(g.totalCapitalLoan).toLocaleString()}` : '', 'Total Capital Loan'));
-  stats.appendChild(statBlock(g.targetedRent ? `£${Number(g.targetedRent).toLocaleString()}` : '', 'Rent p/a'));
-  stats.appendChild(statBlock(g.netYield ? `${g.netYield}%` : '', 'Yield'));
-  body.appendChild(stats);
-
-  if (missingNumbers(g)) {
-    const note = document.createElement('p');
-    note.className = 'acq-needs-numbers-note';
-    note.textContent = '⚠ Needs numbers added';
-    body.appendChild(note);
+  const addrTd = document.createElement('td');
+  addrTd.className = 'acq-reg-addr-cell';
+  const addrSpan = document.createElement('span');
+  addrSpan.className = 'acq-reg-addr';
+  addrSpan.textContent = p.propertyAddress || '(no address)';
+  addrTd.appendChild(addrSpan);
+  const flags = [];
+  if (g.priority) flags.push(regTagEl('priority', '★ PRIORITY'));
+  if (missingNumbers(g)) flags.push(regTagEl('needs-data', 'NEEDS DATA'));
+  if (flags.length) {
+    const flagsWrap = document.createElement('span');
+    flagsWrap.className = 'acq-reg-flags';
+    flags.forEach((f) => flagsWrap.appendChild(f));
+    addrTd.appendChild(flagsWrap);
   }
+  tr.appendChild(addrTd);
 
-  el.appendChild(body);
-  return el;
+  const statusTd = document.createElement('td');
+  const pill = document.createElement('span');
+  pill.className = 'acq-reg-status-pill' + (completed ? ' is-complete' : '');
+  pill.textContent = g.status || '—';
+  statusTd.appendChild(pill);
+  tr.appendChild(statusTd);
+
+  const unitTd = document.createElement('td');
+  unitTd.textContent = p.bedrooms ? `${p.bedrooms} bed` : '—';
+  tr.appendChild(unitTd);
+
+  const usageTd = document.createElement('td');
+  usageTd.className = 'acq-reg-usage';
+  usageTd.textContent = g.propertyUsage || '—';
+  tr.appendChild(usageTd);
+
+  const revTd = document.createElement('td');
+  revTd.className = 'acq-reg-rev-cell';
+  const revSpan = document.createElement('span');
+  if (g.numbersConfirmed) {
+    revSpan.className = 'acq-reg-rev-check';
+    revSpan.textContent = '✓';
+  } else {
+    revSpan.className = 'acq-reg-rev-dash';
+    revSpan.textContent = '–';
+  }
+  revTd.appendChild(revSpan);
+  tr.appendChild(revTd);
+
+  tr.appendChild(regNumCell(g.totalCapitalLoan));
+  tr.appendChild(regNumCell(g.targetedRent, '/yr'));
+  tr.appendChild(regYieldCell(g.netYield));
+
+  return tr;
 }
 
 // --- Detail / timeline modal ---
@@ -212,6 +384,21 @@ function formatStatValue(field, value) {
   if (TEXT_STAT_FIELDS.includes(field)) return String(value);
   if (field === 'netYield') return `${value}%`;
   return `£${Number(value).toLocaleString()}`;
+}
+
+function detailRow(label, value) {
+  const row = document.createElement('div');
+  const isMissing = !value;
+  row.className = 'acq-detail-row' + (isMissing ? ' missing' : '');
+  const labelEl = document.createElement('span');
+  labelEl.className = 'label';
+  labelEl.textContent = label;
+  const valueEl = document.createElement('span');
+  valueEl.className = 'value';
+  valueEl.textContent = isMissing ? 'Needs data' : value;
+  row.appendChild(labelEl);
+  row.appendChild(valueEl);
+  return row;
 }
 
 function renderTimeline(currentStatus, propertyId) {
@@ -299,12 +486,15 @@ function openDetailModal(p) {
   const needsNumbersEl = document.getElementById('detail-needs-numbers');
   needsNumbersEl.classList.toggle('hidden', !missingNumbers(g));
 
+  const numbersReviewedEl = document.getElementById('detail-numbers-reviewed');
+  numbersReviewedEl.classList.toggle('hidden', !g.numbersConfirmed);
+
   renderTimeline(g.status, p.id);
 
   const statsEl = document.getElementById('detail-stats');
   statsEl.innerHTML = '';
   for (const [field, label] of DETAIL_STAT_FIELDS) {
-    statsEl.appendChild(statBlock(formatStatValue(field, g[field]), label));
+    statsEl.appendChild(detailRow(label, formatStatValue(field, g[field])));
   }
 
   document.getElementById('detail-notes').textContent = g.notes || 'No notes.';
