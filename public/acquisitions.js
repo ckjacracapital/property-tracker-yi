@@ -439,10 +439,46 @@ function renderStageHistory(g) {
     return;
   }
   const now = Date.now();
-  history.forEach((entry, i) => {
+
+  // Per-entry durations, computed once and reused for both the aggregated
+  // summary and the chronological log below it.
+  const durations = history.map((entry, i) => {
     const isLast = i === history.length - 1;
     const startMs = new Date(entry.enteredAt).getTime();
     const endMs = isLast ? now : new Date(history[i + 1].enteredAt).getTime();
+    return endMs - startMs;
+  });
+
+  // Summary: total time spent in each stage, in pipeline order — a property
+  // that revisited a stage (moved back and forth) has its visits summed.
+  const totals = new Map(TIMELINE_STEPS.map((s) => [s, 0]));
+  history.forEach((entry, i) => {
+    if (totals.has(entry.status)) totals.set(entry.status, totals.get(entry.status) + durations[i]);
+  });
+
+  const summaryLabel = document.createElement('p');
+  summaryLabel.className = 'acq-history-caption';
+  summaryLabel.textContent = 'Summary';
+  el.appendChild(summaryLabel);
+
+  const summaryEl = document.createElement('div');
+  summaryEl.className = 'acq-history-summary';
+  for (const stage of TIMELINE_STEPS) {
+    const total = totals.get(stage);
+    if (total <= 0) continue;
+    summaryEl.appendChild(detailRow(stage, formatDuration(total)));
+  }
+  el.appendChild(summaryEl);
+
+  const logLabel = document.createElement('p');
+  logLabel.className = 'acq-history-caption';
+  logLabel.textContent = 'Detailed log';
+  el.appendChild(logLabel);
+
+  const logEl = document.createElement('div');
+  logEl.className = 'acq-history-log';
+  history.forEach((entry, i) => {
+    const isLast = i === history.length - 1;
 
     const row = document.createElement('div');
     row.className = 'acq-history-row';
@@ -455,13 +491,14 @@ function renderStageHistory(g) {
     metaEl.className = 'meta';
     metaEl.appendChild(document.createTextNode(`Entered ${formatDateTime(entry.enteredAt)} · `));
     const durationB = document.createElement('b');
-    durationB.textContent = formatDuration(endMs - startMs);
+    durationB.textContent = formatDuration(durations[i]);
     metaEl.appendChild(durationB);
 
     row.appendChild(stageEl);
     row.appendChild(metaEl);
-    el.appendChild(row);
+    logEl.appendChild(row);
   });
+  el.appendChild(logEl);
 }
 
 function renderTimeline(currentStatus, propertyId) {

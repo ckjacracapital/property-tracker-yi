@@ -829,6 +829,25 @@ body.login-page {
   margin-top: 4px;
 }
 
+.acq-history-caption {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 10px 0 2px;
+}
+
+.acq-history-caption:first-child { margin-top: 2px; }
+
+.acq-history-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 28px;
+}
+
+.acq-history-log { display: flex; flex-direction: column; }
+
 .modal summary.section-label {
   cursor: pointer;
   list-style: none;
