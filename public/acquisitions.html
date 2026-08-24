@@ -31,6 +31,7 @@
     <div class="page-actions">
       <button id="new-btn">+ New property</button>
       <button type="button" class="secondary" id="export-btn">Export CSV</button>
+      <button type="button" class="secondary" id="timing-btn">Stage Timing</button>
     </div>
     <div id="panels"></div>
   </main>
@@ -140,6 +141,7 @@
       <div class="acq-card-image acq-detail-image" id="detail-image"></div>
       <h3 id="detail-address"></h3>
       <p class="subline" id="detail-subline"></p>
+      <p class="acq-last-edited" id="detail-last-edited"></p>
       <p class="acq-needs-numbers-note hidden" id="detail-needs-numbers">⚠ Needs numbers added</p>
       <p class="acq-numbers-reviewed-note hidden" id="detail-numbers-reviewed">✓ Numbers reviewed</p>
 
@@ -152,6 +154,9 @@
 
       <div class="section-label">Notes</div>
       <p class="subline" id="detail-notes" style="white-space:pre-wrap;"></p>
+
+      <div class="section-label">Stage history</div>
+      <div class="acq-stage-history" id="detail-stage-history"></div>
 
       <div class="modal-actions">
         <button type="button" class="secondary" id="detail-close-btn">Close</button>

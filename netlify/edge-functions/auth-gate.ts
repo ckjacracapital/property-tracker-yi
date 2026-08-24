@@ -19,6 +19,7 @@ const PUBLIC_PATHS = new Set([
 
 const PAGE_STAGE: Record<string, string> = {
   "/acquisitions.html": "acquisitions",
+  "/timing.html": "acquisitions",
   "/refurb.html": "refurb",
   "/due-diligence.html": "due_diligence",
   "/due-diligence-detail.html": "due_diligence",

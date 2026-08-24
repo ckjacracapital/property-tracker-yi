@@ -401,6 +401,69 @@ function detailRow(label, value) {
   return row;
 }
 
+function formatDateTime(iso) {
+  return new Date(iso).toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function formatDuration(ms) {
+  const totalMinutes = Math.floor(ms / 60000);
+  if (totalMinutes < 1) return '<1m';
+  const minutes = totalMinutes % 60;
+  const totalHours = Math.floor(totalMinutes / 60);
+  const hours = totalHours % 24;
+  const totalDays = Math.floor(totalHours / 24);
+  if (totalDays >= 30) {
+    const months = Math.floor(totalDays / 30);
+    const days = totalDays % 30;
+    return days > 0 ? `${months}mo ${days}d` : `${months}mo`;
+  }
+  if (totalDays > 0) return hours > 0 ? `${totalDays}d ${hours}h` : `${totalDays}d`;
+  if (totalHours > 0) return minutes > 0 ? `${totalHours}h ${minutes}m` : `${totalHours}h`;
+  return `${minutes}m`;
+}
+
+// Stage duration is derived, not stored: each history entry's time-in-stage
+// is the gap to the next entry's enteredAt, and the current (last) entry's
+// gap runs to now — so it keeps counting up while a property sits there.
+function renderStageHistory(g) {
+  const el = document.getElementById('detail-stage-history');
+  el.innerHTML = '';
+  const history = g.statusHistory || [];
+  if (history.length === 0) {
+    const hint = document.createElement('p');
+    hint.className = 'empty-hint';
+    hint.textContent = 'No stage changes recorded yet — history starts tracking from the next move.';
+    el.appendChild(hint);
+    return;
+  }
+  const now = Date.now();
+  history.forEach((entry, i) => {
+    const isLast = i === history.length - 1;
+    const startMs = new Date(entry.enteredAt).getTime();
+    const endMs = isLast ? now : new Date(history[i + 1].enteredAt).getTime();
+
+    const row = document.createElement('div');
+    row.className = 'acq-history-row';
+
+    const stageEl = document.createElement('span');
+    stageEl.className = 'stage' + (isLast ? ' current' : '');
+    stageEl.textContent = entry.status;
+
+    const metaEl = document.createElement('span');
+    metaEl.className = 'meta';
+    metaEl.appendChild(document.createTextNode(`Entered ${formatDateTime(entry.enteredAt)} · `));
+    const durationB = document.createElement('b');
+    durationB.textContent = formatDuration(endMs - startMs);
+    metaEl.appendChild(durationB);
+
+    row.appendChild(stageEl);
+    row.appendChild(metaEl);
+    el.appendChild(row);
+  });
+}
+
 function renderTimeline(currentStatus, propertyId) {
   const el = document.getElementById('detail-timeline');
   el.innerHTML = '';
@@ -429,7 +492,11 @@ async function setStatus(id, status) {
   // accepted, so an immediate re-fetch can briefly show the old value.
   const local = properties.find((p) => p.id === id);
   if (local) {
-    local.acquisitions = { ...(local.acquisitions || {}), status };
+    const prevStatus = (local.acquisitions || {}).status;
+    const history = ((local.acquisitions || {}).statusHistory || []).slice();
+    if (status !== prevStatus) history.push({ status, enteredAt: new Date().toISOString() });
+    local.acquisitions = { ...(local.acquisitions || {}), status, statusHistory: history };
+    local.updatedAt = new Date().toISOString();
     render();
     openDetailModal(local);
   }
@@ -483,6 +550,8 @@ function openDetailModal(p) {
   document.getElementById('detail-address').textContent = p.propertyAddress || '(no address)';
   renderDetailSubline(g, p);
 
+  document.getElementById('detail-last-edited').textContent = p.updatedAt ? `Last edited ${formatDateTime(p.updatedAt)}` : '';
+
   const needsNumbersEl = document.getElementById('detail-needs-numbers');
   needsNumbersEl.classList.toggle('hidden', !missingNumbers(g));
 
@@ -498,6 +567,8 @@ function openDetailModal(p) {
   }
 
   document.getElementById('detail-notes').textContent = g.notes || 'No notes.';
+
+  renderStageHistory(g);
 
   const completed = isCompletedIn(p, STAGE);
   document.getElementById('detail-complete-btn').style.display = completed ? 'none' : '';
@@ -658,6 +729,7 @@ function closeModal() {
 
 document.getElementById('new-btn').onclick = () => openModal(null);
 document.getElementById('export-btn').onclick = () => { window.location.href = '/api/export/acquisitions'; };
+document.getElementById('timing-btn').onclick = () => { window.location.href = 'timing.html'; };
 document.getElementById('cancel-btn').onclick = closeModal;
 
 propertyForm.addEventListener('submit', async (e) => {

@@ -280,10 +280,25 @@ function filterPropertiesForSession(properties: any[], session: any): any[] {
     });
 }
 
+// When a PATCH changes the acquisitions timeline status, stamp when it
+// entered the new stage. Stage duration is later derived by diffing
+// consecutive entries (or "now" for whichever stage is still current) —
+// nothing else needs to track elapsed time separately.
+function recordStatusChange(property: any, body: any) {
+  if (!body.acquisitions || typeof body.acquisitions !== "object" || body.acquisitions.status === undefined) return;
+  const prevStatus = (property.acquisitions || {}).status;
+  const newStatus = body.acquisitions.status;
+  if (!newStatus || newStatus === prevStatus) return;
+  const history = ((property.acquisitions || {}).statusHistory || []).slice();
+  history.push({ status: newStatus, enteredAt: new Date().toISOString() });
+  body.acquisitions.statusHistory = history;
+}
+
 function applyUpdate(property: any, body: any) {
   for (const field of CORE_FIELDS) {
     if (body[field] !== undefined) property[field] = body[field];
   }
+  recordStatusChange(property, body);
   for (const group of STAGE_GROUPS) {
     if (body[group] && typeof body[group] === "object") {
       property[group] = { ...property[group], ...body[group] };

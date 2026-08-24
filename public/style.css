@@ -817,6 +817,59 @@ body.login-page {
 
 .acq-numbers-reviewed-note.hidden { display: none; }
 
+.acq-last-edited {
+  font-size: 11px;
+  color: var(--muted);
+  margin: -2px 0 0;
+}
+
+.acq-stage-history {
+  display: flex;
+  flex-direction: column;
+}
+
+.acq-history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.acq-history-row:last-child { border-bottom: none; }
+
+.acq-history-row .stage {
+  font-weight: 600;
+  color: var(--jacra-navy);
+}
+
+.acq-history-row .stage.current::after {
+  content: 'Current';
+  margin-left: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--jacra-navy);
+  background: var(--jacra-chartreuse);
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+
+.acq-history-row .meta {
+  text-align: right;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.acq-history-row .meta b {
+  color: var(--jacra-navy);
+  font-weight: 600;
+}
+
 .acq-reg-masthead {
   display: flex;
   justify-content: space-between;

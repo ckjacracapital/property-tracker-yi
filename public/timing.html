@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jacra | Stage Timing</title>
+<link rel="icon" type="image/png" href="jacra-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-stage="acquisitions" data-page-id="timing">
+  <header>
+    <div class="brand">
+      <img src="jacra-logo.png" alt="Jacra Capital" class="brand-logo">
+      <div class="brand-text">
+        <span class="brand-name">Jacra Capital</span>
+        <span class="brand-subtitle">Acquisitions &amp; Refurbishment Portal</span>
+      </div>
+    </div>
+    <button class="secondary" id="manage-staff-btn" style="display:none;">Manage staff</button>
+    <button class="secondary" id="activity-btn" style="display:none;">Activity</button>
+    <button class="secondary" id="manage-portfolios-btn">Manage portfolios</button>
+    <button class="secondary" id="logout-btn">Log out</button>
+  </header>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <main>
+    <a class="back-link" href="acquisitions.html">← Back to Acquisitions &amp; Legals</a>
+
+    <div class="acq-reg-masthead" style="margin-top:16px;">
+      <div>
+        <p class="acq-reg-title">Stage Timing</p>
+        <p class="acq-reg-subtitle">How long deals typically sit in each pipeline stage</p>
+      </div>
+      <div class="acq-reg-meta">
+        <div><strong>Prepared for</strong> Jacra Capital</div>
+        <div><strong>As of</strong> <span id="timing-as-of"></span></div>
+      </div>
+    </div>
+
+    <div class="acq-reg-toolbar">
+      <span class="acq-reg-stat-chip"><span>Properties tracked</span> <b id="timing-total-count">0</b></span>
+      <span class="acq-reg-stat-chip is-headline"><span>Avg full cycle (Offer → Complete)</span> <b id="timing-cycle-time">—</b></span>
+    </div>
+
+    <div class="acq-register">
+      <div class="acq-register-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Stage</th>
+              <th class="acq-reg-num">Avg time in stage</th>
+              <th class="acq-reg-num">Samples</th>
+              <th class="acq-reg-num">Longest currently waiting</th>
+            </tr>
+          </thead>
+          <tbody id="timing-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="empty-hint" id="timing-empty-hint" style="display:none;">
+      No stage history yet — timing starts being tracked the next time a property moves to a new stage on the Acquisitions &amp; Legals page.
+    </p>
+
+    <div class="acq-reg-footnote" style="margin-top:16px;">
+      <span>Durations are measured from when a property enters a stage to when it moves to the next one — the current stage of an active property keeps counting until it moves.</span>
+    </div>
+  </main>
+
+  <div id="portfolio-modal-backdrop" class="hidden">
+    <div class="modal">
+      <h3>Manage Portfolios</h3>
+      <div id="portfolio-list"></div>
+      <form id="portfolio-add-form" class="row">
+        <input type="text" id="new-portfolio-name" placeholder="New portfolio name" required>
+        <button type="submit">Add</button>
+      </form>
+      <div class="modal-actions"><button type="button" id="portfolio-modal-close">Close</button></div>
+    </div>
+  </div>
+
+  <script src="app-shared.js"></script>
+  <script src="timing.js"></script>
+</body>
+</html>
