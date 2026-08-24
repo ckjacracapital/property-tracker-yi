@@ -396,6 +396,7 @@ function renderMediaStatus(g) {
   el.innerHTML = '';
   el.appendChild(mediaChip('Pictures', g.pictures));
   el.appendChild(mediaChip('Floorplan', g.floorplan));
+  el.appendChild(mediaChip('Refurb Required', g.refurbRequired));
 }
 
 const detailModalBackdrop = document.getElementById('detail-modal-backdrop');
