@@ -413,7 +413,6 @@ function renderMediaStatus(g) {
   el.appendChild(textChip('Agent Name', g.agentName));
   el.appendChild(textChip('Agent Phone', g.agentPhone));
   el.appendChild(textChip('Agent Email', g.agentEmail));
-  el.appendChild(textChip('Property Usage', g.propertyUsage));
 }
 
 const detailModalBackdrop = document.getElementById('detail-modal-backdrop');
@@ -633,6 +632,10 @@ function openDetailModal(p) {
 
   const numbersReviewedEl = document.getElementById('detail-numbers-reviewed');
   numbersReviewedEl.classList.toggle('hidden', !g.numbersConfirmed);
+
+  const propertyUsageEl = document.getElementById('detail-property-usage');
+  propertyUsageEl.innerHTML = '';
+  propertyUsageEl.appendChild(textChip('Property Usage', g.propertyUsage));
 
   renderMediaStatus(g);
 

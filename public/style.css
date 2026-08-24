@@ -817,6 +817,13 @@ body.login-page {
 
 .acq-numbers-reviewed-note.hidden { display: none; }
 
+.acq-reviewed-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .acq-media-status {
   display: flex;
   flex-wrap: wrap;
