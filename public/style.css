@@ -817,6 +817,38 @@ body.login-page {
 
 .acq-numbers-reviewed-note.hidden { display: none; }
 
+.acq-media-status {
+  display: flex;
+  gap: 8px;
+  margin: 6px 0 0;
+}
+
+.acq-media-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.acq-media-chip.yes {
+  background: var(--jacra-navy);
+  border-color: var(--jacra-navy);
+  color: #fff;
+}
+
+.acq-media-chip.no-answer {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.acq-media-chip.missing {
+  background: #fdecea;
+  border-color: #f3c8c1;
+  color: var(--jacra-jasper);
+}
+
 .acq-last-edited {
   font-size: 11px;
   color: var(--muted);

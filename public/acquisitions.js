@@ -368,14 +368,35 @@ function renderEntryRow(p, completed) {
 
 const DETAIL_STAT_FIELDS = [
   ['agentName', 'Agent Name'], ['agentContact', 'Agent Contact'], ['propertyUsage', 'Property Usage'],
-  ['pictures', 'Pictures'], ['floorplan', 'Floorplan'],
   ['purchasePrice', 'Purchase Price'], ['targetedRent', 'Rent p/a'], ['netYield', 'Net Yield'],
   ['valuationAt8', 'Valuation @8%'], ['totalCapitalLoan', 'Total Capital Loan'], ['refurbCost', 'Refurb Cost'],
   ['stampDuty', 'Stamp Duty'], ['fees', 'Fees'], ['legals', 'Legals'],
   ['comms', 'Comms'], ['utilities', 'Utilities'], ['certs', 'Certs'], ['yiMargin', 'YI Margin']
 ];
 
-const TEXT_STAT_FIELDS = ['agentName', 'agentContact', 'propertyUsage', 'pictures', 'floorplan'];
+const TEXT_STAT_FIELDS = ['agentName', 'agentContact', 'propertyUsage'];
+
+function mediaChip(label, value) {
+  const span = document.createElement('span');
+  if (value === 'Yes') {
+    span.className = 'acq-media-chip yes';
+    span.textContent = `✓ ${label}`;
+  } else if (value === 'No') {
+    span.className = 'acq-media-chip no-answer';
+    span.textContent = `✕ ${label}`;
+  } else {
+    span.className = 'acq-media-chip missing';
+    span.textContent = `${label}: Needs data`;
+  }
+  return span;
+}
+
+function renderMediaStatus(g) {
+  const el = document.getElementById('detail-media-status');
+  el.innerHTML = '';
+  el.appendChild(mediaChip('Pictures', g.pictures));
+  el.appendChild(mediaChip('Floorplan', g.floorplan));
+}
 
 const detailModalBackdrop = document.getElementById('detail-modal-backdrop');
 let detailPropertyId = null;
@@ -595,6 +616,8 @@ function openDetailModal(p) {
 
   const numbersReviewedEl = document.getElementById('detail-numbers-reviewed');
   numbersReviewedEl.classList.toggle('hidden', !g.numbersConfirmed);
+
+  renderMediaStatus(g);
 
   renderTimeline(g.status, p.id);
 
