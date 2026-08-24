@@ -2,7 +2,7 @@ const STAGE = 'acquisitions';
 const GROUP = 'acquisitions';
 
 const GROUP_FIELDS = [
-  'status', 'pictureUrl', 'pictures', 'floorplan', 'refurbRequired', 'agentName', 'agentContact',
+  'status', 'pictureUrl', 'pictures', 'floorplan', 'refurbRequired', 'agentName', 'agentPhone', 'agentEmail',
   'propertyUsage', 'targetedRent', 'netYield', 'valuationAt8', 'totalCapitalLoan',
   'purchasePrice', 'refurbCost', 'utilities', 'certs', 'yiMargin', 'stampDuty',
   'fees', 'legals', 'comms', 'notes'
@@ -411,7 +411,8 @@ function renderMediaStatus(g) {
   el.appendChild(mediaChip('Floorplan', g.floorplan));
   el.appendChild(mediaChip('Refurb Required', g.refurbRequired));
   el.appendChild(textChip('Agent Name', g.agentName));
-  el.appendChild(textChip('Agent Contact', g.agentContact));
+  el.appendChild(textChip('Agent Phone', g.agentPhone));
+  el.appendChild(textChip('Agent Email', g.agentEmail));
   el.appendChild(textChip('Property Usage', g.propertyUsage));
 }
 

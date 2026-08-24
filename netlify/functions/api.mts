@@ -715,7 +715,7 @@ async function handleExport(stage: string, session: any) {
   if (stage === "acquisitions") {
     headers = [
       "Portfolio", "Property Address", "Bedrooms", "Status", "Pictures", "Floorplan", "Refurb Required",
-      "Numbers Confirmed", "Priority", "Agent Name", "Agent Contact", "Property Usage", "Targeted Rent",
+      "Numbers Confirmed", "Priority", "Agent Name", "Agent Phone", "Agent Email", "Property Usage", "Targeted Rent",
       "Net Yield", "Valuation at 8%", "Total Capital Loan", "Purchase Price", "Refurb Cost", "Utilities",
       "Certs", "YI Margin", "Stamp Duty", "Fees", "Legals", "Comms", "Notes", "Stage Status", "Completed Date"
     ];
@@ -723,7 +723,7 @@ async function handleExport(stage: string, session: any) {
       const g = p.acquisitions || {};
       return [
         portfolioOf(p), p.propertyAddress, p.bedrooms, g.status, g.pictures, g.floorplan, g.refurbRequired,
-        g.numbersConfirmed ? "Yes" : "", g.priority ? "Yes" : "", g.agentName, g.agentContact, g.propertyUsage,
+        g.numbersConfirmed ? "Yes" : "", g.priority ? "Yes" : "", g.agentName, g.agentPhone, g.agentEmail, g.propertyUsage,
         g.targetedRent, g.netYield, g.valuationAt8, g.totalCapitalLoan, g.purchasePrice, g.refurbCost,
         g.utilities, g.certs, g.yiMargin, g.stampDuty, g.fees, g.legals, g.comms, g.notes,
         p.stageHistory?.acquisitions ? "Completed" : "Active", p.stageHistory?.acquisitions || ""
