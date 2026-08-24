@@ -368,13 +368,14 @@ function renderEntryRow(p, completed) {
 
 const DETAIL_STAT_FIELDS = [
   ['agentName', 'Agent Name'], ['agentContact', 'Agent Contact'], ['propertyUsage', 'Property Usage'],
+  ['pictures', 'Pictures'], ['floorplan', 'Floorplan'],
   ['purchasePrice', 'Purchase Price'], ['targetedRent', 'Rent p/a'], ['netYield', 'Net Yield'],
   ['valuationAt8', 'Valuation @8%'], ['totalCapitalLoan', 'Total Capital Loan'], ['refurbCost', 'Refurb Cost'],
   ['stampDuty', 'Stamp Duty'], ['fees', 'Fees'], ['legals', 'Legals'],
   ['comms', 'Comms'], ['utilities', 'Utilities'], ['certs', 'Certs'], ['yiMargin', 'YI Margin']
 ];
 
-const TEXT_STAT_FIELDS = ['agentName', 'agentContact', 'propertyUsage'];
+const TEXT_STAT_FIELDS = ['agentName', 'agentContact', 'propertyUsage', 'pictures', 'floorplan'];
 
 const detailModalBackdrop = document.getElementById('detail-modal-backdrop');
 let detailPropertyId = null;
