@@ -367,15 +367,14 @@ function renderEntryRow(p, completed) {
 // --- Detail / timeline modal ---
 
 const DETAIL_STAT_FIELDS = [
-  ['agentName', 'Agent Name'], ['agentContact', 'Agent Contact'], ['propertyUsage', 'Property Usage'],
   ['purchasePrice', 'Purchase Price'], ['targetedRent', 'Rent p/a'], ['netYield', 'Net Yield'],
   ['valuationAt8', 'Valuation @8%'], ['totalCapitalLoan', 'Total Capital Loan'], ['refurbCost', 'Refurb Cost'],
   ['stampDuty', 'Stamp Duty'], ['fees', 'Fees'], ['legals', 'Legals'],
   ['comms', 'Comms'], ['utilities', 'Utilities'], ['certs', 'Certs'], ['yiMargin', 'YI Margin']
 ];
 
-const TEXT_STAT_FIELDS = ['agentName', 'agentContact', 'propertyUsage'];
-
+// Yes/No fields (pictures, floorplan, refurb required) — three states:
+// answered Yes, answered No, or never answered.
 function mediaChip(label, value) {
   const span = document.createElement('span');
   if (value === 'Yes') {
@@ -391,12 +390,29 @@ function mediaChip(label, value) {
   return span;
 }
 
+// Free-text fields (agent name/contact, property usage) — same highlighted
+// treatment as the Yes/No chips, just showing the value instead of a tick.
+function textChip(label, value) {
+  const span = document.createElement('span');
+  if (value) {
+    span.className = 'acq-media-chip yes';
+    span.textContent = `${label}: ${value}`;
+  } else {
+    span.className = 'acq-media-chip missing';
+    span.textContent = `${label}: Needs data`;
+  }
+  return span;
+}
+
 function renderMediaStatus(g) {
   const el = document.getElementById('detail-media-status');
   el.innerHTML = '';
   el.appendChild(mediaChip('Pictures', g.pictures));
   el.appendChild(mediaChip('Floorplan', g.floorplan));
   el.appendChild(mediaChip('Refurb Required', g.refurbRequired));
+  el.appendChild(textChip('Agent Name', g.agentName));
+  el.appendChild(textChip('Agent Contact', g.agentContact));
+  el.appendChild(textChip('Property Usage', g.propertyUsage));
 }
 
 const detailModalBackdrop = document.getElementById('detail-modal-backdrop');
@@ -404,7 +420,6 @@ let detailPropertyId = null;
 
 function formatStatValue(field, value) {
   if (value === undefined || value === null || value === '') return '';
-  if (TEXT_STAT_FIELDS.includes(field)) return String(value);
   if (field === 'netYield') return `${value}%`;
   return `£${Number(value).toLocaleString()}`;
 }
@@ -578,10 +593,10 @@ function sublineItem(label, value) {
 function renderDetailSubline(g, p) {
   const el = document.getElementById('detail-subline');
   el.innerHTML = '';
+  // Property Usage and Agent moved to the highlighted status chips below —
+  // just bedrooms stays here.
   const items = [
-    sublineItem('Property Usage', g.propertyUsage),
-    sublineItem('Bedrooms', p.bedrooms ? `${p.bedrooms} bed` : ''),
-    sublineItem('Agent', g.agentName)
+    sublineItem('Bedrooms', p.bedrooms ? `${p.bedrooms} bed` : '')
   ].filter(Boolean);
   items.forEach((item, i) => {
     if (i > 0) el.appendChild(document.createTextNode('   ·   '));

@@ -819,6 +819,7 @@ body.login-page {
 
 .acq-media-status {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 6px 0 0;
 }
