@@ -1,5 +1,5 @@
 import type { Context, Config } from "@netlify/functions";
-import { getStore } from "@netlify/blobs";
+import * as db from "./lib/db.mts";
 
 // Only Acquisitions and Refurb are a strict "one active stage at a time"
 // pipeline with an open/complete gate. Completing Refurb fans a property out
@@ -35,88 +35,18 @@ const FLAG_TO_STAGE: Record<string, string> = {
   reachedHandedOver: "handed_over"
 };
 
-const PROPERTIES_KEY = "properties";
-const PORTFOLIOS_KEY = "portfolios";
-const STAFF_KEY = "staffUsers";
-const PRESENCE_KEY = "presence";
-const TIME_SPENT_KEY = "timeSpent";
-const ACTIVITY_LOG_KEY = "activityLog";
 const SESSION_COOKIE = "jacra_session";
 const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 const HEARTBEAT_INTERVAL_SECONDS = 20;
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
-const ACTIVITY_LOG_MAX = 500;
-
-function propertiesStore() {
-  return getStore("property-tracker");
-}
-
-function imagesStore() {
-  return getStore("property-images");
-}
-
+const ACTIVITY_FEED_LIMIT = 200;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
-async function loadProperties(): Promise<any[]> {
-  const data = await propertiesStore().get(PROPERTIES_KEY, { type: "json" });
-  return data || [];
-}
-
-async function saveProperties(properties: any[]) {
-  await propertiesStore().setJSON(PROPERTIES_KEY, properties);
-}
-
-async function loadPortfolios(): Promise<any[]> {
-  const data = await propertiesStore().get(PORTFOLIOS_KEY, { type: "json" });
-  return data || [];
-}
-
-async function savePortfolios(portfolios: any[]) {
-  await propertiesStore().setJSON(PORTFOLIOS_KEY, portfolios);
-}
-
-async function loadStaff(): Promise<any[]> {
-  const data = await propertiesStore().get(STAFF_KEY, { type: "json" });
-  return data || [];
-}
-
-async function saveStaff(staff: any[]) {
-  await propertiesStore().setJSON(STAFF_KEY, staff);
-}
-
-async function loadPresence(): Promise<Record<string, { lastSeen: string; path: string }>> {
-  const data = await propertiesStore().get(PRESENCE_KEY, { type: "json" });
-  return data || {};
-}
-
-async function savePresence(presence: Record<string, { lastSeen: string; path: string }>) {
-  await propertiesStore().setJSON(PRESENCE_KEY, presence);
-}
-
-async function loadTimeSpent(): Promise<Record<string, Record<string, number>>> {
-  const data = await propertiesStore().get(TIME_SPENT_KEY, { type: "json" });
-  return data || {};
-}
-
-async function saveTimeSpent(timeSpent: Record<string, Record<string, number>>) {
-  await propertiesStore().setJSON(TIME_SPENT_KEY, timeSpent);
-}
-
-async function loadActivityLog(): Promise<any[]> {
-  const data = await propertiesStore().get(ACTIVITY_LOG_KEY, { type: "json" });
-  return data || [];
-}
-
-async function saveActivityLog(log: any[]) {
-  await propertiesStore().setJSON(ACTIVITY_LOG_KEY, log);
-}
-
+// All persistence lives in Supabase (see ./lib/db.mts and supabase/schema.sql).
 async function logEvent(username: string, type: string, detail: any) {
-  const log = await loadActivityLog();
-  log.push({ id: crypto.randomUUID(), ts: new Date().toISOString(), username, type, detail });
-  const trimmed = log.length > ACTIVITY_LOG_MAX ? log.slice(log.length - ACTIVITY_LOG_MAX) : log;
-  await saveActivityLog(trimmed);
+  await db.appendActivity(username, type, detail);
 }
+
 
 // --- Crypto helpers (Web Crypto, available in both this Node function
 // runtime and the Deno edge runtime that independently re-implements the
@@ -364,38 +294,29 @@ async function handleBulkImport(req: Request, session: any) {
   const valid = items.filter((item: any) => item && String(item.propertyAddress || "").trim());
   if (valid.length === 0) return Response.json({ error: "no valid items" }, { status: 400 });
 
-  const properties = await loadProperties();
   const created = valid.map((item: any) => newProperty(item));
-  properties.push(...created);
-  await saveProperties(properties);
+  await db.insertProperties(created);
   await logEvent(session.username, "bulk_import", { count: created.length });
   return Response.json({ created: created.length }, { status: 201 });
 }
 
-// One read, N in-memory removals, one write — mirrors handleBulkImport.
-// Deleting N properties one at a time (each its own read-modify-write) can
-// race with itself the same way sequential creates can: a delete's write may
-// not yet be visible to the very next delete's read, so that next write can
-// silently resurrect the item just removed.
+// Deletes every listed property in one statement (rows are independent in
+// Supabase, so there's no shared array to race on).
 async function handleBulkDelete(req: Request, session: any) {
   if (!isAdmin(session)) return Response.json({ error: "forbidden" }, { status: 403 });
   const body = await req.json();
   const ids = Array.isArray(body.ids) ? body.ids.filter((id: any) => typeof id === "string") : [];
   if (ids.length === 0) return Response.json({ error: "no ids" }, { status: 400 });
 
-  const properties = await loadProperties();
-  const idSet = new Set(ids);
-  const removed = properties.filter((p) => idSet.has(p.id));
-  const next = properties.filter((p) => !idSet.has(p.id));
-  await saveProperties(next);
+  const removed = await db.deleteProperties(ids);
   await logEvent(session.username, "bulk_delete", { count: removed.length, addresses: removed.map((p) => p.propertyAddress) });
   return Response.json({ deleted: removed.length });
 }
 
 // Uploaded photo goes straight in the request body (no multipart parsing
 // needed) — the client sends the raw File as the fetch body with its
-// content-type header, so we just stream those bytes into blob storage
-// under a random id and hand back the URL to fetch it from.
+// content-type header, so we just store those bytes in the private Supabase
+// Storage bucket under a random id and hand back the URL to fetch it from.
 async function handleImageUpload(req: Request, session: any) {
   const contentType = req.headers.get("content-type") || "";
   if (!contentType.startsWith("image/")) {
@@ -407,24 +328,23 @@ async function handleImageUpload(req: Request, session: any) {
     return Response.json({ error: "image too large (max 8MB)" }, { status: 413 });
   }
   const id = crypto.randomUUID();
-  await imagesStore().set(id, buf, { metadata: { contentType } });
+  await db.putImage(id, buf, contentType);
   await logEvent(session.username, "image_uploaded", { id });
   return Response.json({ id, url: `/api/images/${id}` }, { status: 201 });
 }
 
 async function handleImageGet(id: string) {
-  const result = await imagesStore().getWithMetadata(id, { type: "arrayBuffer" });
+  const result = await db.getImage(id);
   if (!result) return Response.json({ error: "not found" }, { status: 404 });
-  const contentType = (result.metadata as any)?.contentType || "application/octet-stream";
-  return new Response(result.data, {
+  return new Response(result.bytes, {
     status: 200,
-    headers: { "Content-Type": contentType, "Cache-Control": "private, max-age=31536000, immutable" }
+    headers: { "Content-Type": result.contentType, "Cache-Control": "private, max-age=31536000, immutable" }
   });
 }
 
 async function handleProperties(req: Request, id: string, action: string, session: any) {
   if (req.method === "GET" && !id) {
-    const properties = await loadProperties();
+    const properties = await db.listProperties();
     return Response.json(filterPropertiesForSession(properties, session));
   }
 
@@ -437,10 +357,8 @@ async function handleProperties(req: Request, id: string, action: string, sessio
     if (!stageAllowed(session, startStage)) {
       return Response.json({ error: "forbidden" }, { status: 403 });
     }
-    const properties = await loadProperties();
     const property = newProperty(body);
-    properties.push(property);
-    await saveProperties(properties);
+    await db.insertProperties([property]);
     await logEvent(session.username, "property_created", { id: property.id, address: property.propertyAddress, stage: startStage });
     return Response.json(property, { status: 201 });
   }
@@ -450,20 +368,18 @@ async function handleProperties(req: Request, id: string, action: string, sessio
     if (!checkWritePermission(session, body)) {
       return Response.json({ error: "forbidden" }, { status: 403 });
     }
-    const properties = await loadProperties();
-    const property = properties.find((p) => p.id === id);
+    const property = await db.getProperty(id);
     if (!property) return Response.json({ error: "not found" }, { status: 404 });
     applyUpdate(property, body);
     property.updatedAt = new Date().toISOString();
-    await saveProperties(properties);
+    await db.saveProperty(property);
     const touchedGroups = Object.keys(body).filter((k) => STAGE_GROUPS.includes(k));
     await logEvent(session.username, "property_updated", { id: property.id, address: property.propertyAddress, groups: touchedGroups });
     return Response.json(property);
   }
 
   if (req.method === "POST" && id && action === "complete") {
-    const properties = await loadProperties();
-    const property = properties.find((p) => p.id === id);
+    const property = await db.getProperty(id);
     if (!property) return Response.json({ error: "not found" }, { status: 404 });
     if (!stageAllowed(session, property.stage)) return Response.json({ error: "forbidden" }, { status: 403 });
     const idx = STAGES.indexOf(property.stage);
@@ -478,14 +394,13 @@ async function handleProperties(req: Request, id: string, action: string, sessio
       property.stage = STAGES[idx + 1];
     }
     property.updatedAt = now;
-    await saveProperties(properties);
+    await db.saveProperty(property);
     await logEvent(session.username, "stage_completed", { id: property.id, address: property.propertyAddress, stage: idx === 0 ? "acquisitions" : "refurb" });
     return Response.json(property);
   }
 
   if (req.method === "POST" && id && action === "reopen") {
-    const properties = await loadProperties();
-    const property = properties.find((p) => p.id === id);
+    const property = await db.getProperty(id);
     if (!property) return Response.json({ error: "not found" }, { status: 404 });
     if (!stageAllowed(session, property.stage)) return Response.json({ error: "forbidden" }, { status: 403 });
     if (property.stageHistory[property.stage]) {
@@ -503,19 +418,16 @@ async function handleProperties(req: Request, id: string, action: string, sessio
       }
     }
     property.updatedAt = new Date().toISOString();
-    await saveProperties(properties);
+    await db.saveProperty(property);
     await logEvent(session.username, "stage_reopened", { id: property.id, address: property.propertyAddress, stage: property.stage });
     return Response.json(property);
   }
 
   if (req.method === "DELETE" && id && !action) {
     if (!isAdmin(session)) return Response.json({ error: "forbidden" }, { status: 403 });
-    const properties = await loadProperties();
-    const target = properties.find((p) => p.id === id);
-    const next = properties.filter((p) => p.id !== id);
-    if (next.length === properties.length) return Response.json({ error: "not found" }, { status: 404 });
-    await saveProperties(next);
-    await logEvent(session.username, "property_deleted", { id, address: target?.propertyAddress });
+    const [target] = await db.deleteProperties([id]);
+    if (!target) return Response.json({ error: "not found" }, { status: 404 });
+    await logEvent(session.username, "property_deleted", { id, address: target.propertyAddress });
     return new Response(null, { status: 204 });
   }
 
@@ -524,7 +436,7 @@ async function handleProperties(req: Request, id: string, action: string, sessio
 
 async function handlePortfolios(req: Request, id: string, session: any) {
   if (req.method === "GET" && !id) {
-    return Response.json(await loadPortfolios());
+    return Response.json(await db.listPortfolios());
   }
 
   if (!isAdmin(session)) return Response.json({ error: "forbidden" }, { status: 403 });
@@ -534,43 +446,32 @@ async function handlePortfolios(req: Request, id: string, session: any) {
     if (!body.name || !String(body.name).trim()) {
       return Response.json({ error: "name is required" }, { status: 400 });
     }
-    const portfolios = await loadPortfolios();
     const portfolio = { id: crypto.randomUUID(), name: String(body.name).trim() };
-    portfolios.push(portfolio);
-    await savePortfolios(portfolios);
+    await db.insertPortfolio(portfolio);
     await logEvent(session.username, "portfolio_created", { name: portfolio.name });
     return Response.json(portfolio, { status: 201 });
   }
 
   if (req.method === "PATCH" && id) {
     const body = await req.json();
-    const portfolios = await loadPortfolios();
-    const portfolio = portfolios.find((p) => p.id === id);
+    const portfolio = body.name !== undefined
+      ? await db.renamePortfolio(id, String(body.name).trim())
+      : (await db.listPortfolios()).find((p: any) => p.id === id) || null;
     if (!portfolio) return Response.json({ error: "not found" }, { status: 404 });
-    if (body.name !== undefined) portfolio.name = String(body.name).trim();
-    await savePortfolios(portfolios);
     await logEvent(session.username, "portfolio_updated", { name: portfolio.name });
     return Response.json(portfolio);
   }
 
   if (req.method === "DELETE" && id) {
-    const portfolios = await loadPortfolios();
-    const target = portfolios.find((p) => p.id === id);
-    const next = portfolios.filter((p) => p.id !== id);
-    if (next.length === portfolios.length) return Response.json({ error: "not found" }, { status: 404 });
-    await savePortfolios(next);
+    const target = await db.deletePortfolio(id);
+    if (!target) return Response.json({ error: "not found" }, { status: 404 });
 
-    const properties = await loadProperties();
-    let changed = false;
-    for (const property of properties) {
-      if (property.portfolioId === id) {
-        property.portfolioId = null;
-        changed = true;
-      }
-    }
-    if (changed) await saveProperties(properties);
+    // Properties in the deleted portfolio become Unassigned. Each property is
+    // its own row, so these saves can't clobber one another.
+    const affected = (await db.listProperties()).filter((p: any) => p.portfolioId === id);
+    await Promise.all(affected.map((p: any) => { p.portfolioId = null; return db.saveProperty(p); }));
 
-    await logEvent(session.username, "portfolio_deleted", { name: target?.name });
+    await logEvent(session.username, "portfolio_deleted", { name: target.name });
     return new Response(null, { status: 204 });
   }
 
@@ -597,20 +498,23 @@ async function handleAuth(req: Request, action: string) {
     const username = String(body.username || "").trim();
     const password = String(body.password || "");
 
-    let staff = await loadStaff();
-    if (staff.length === 0) {
-      // Bootstrap: seed one admin from the site's existing shared credentials
-      // so Charley keeps the login already in use and is never locked out.
+    if ((await db.countStaff()) === 0) {
+      // Bootstrap: with no staff logins yet (a fresh Supabase project), seed one
+      // admin from SITE_USER / SITE_PASSWORD so the portal is never locked out.
       const seedUsername = process.env.SITE_USER || "jacra";
       const seedPassword = process.env.SITE_PASSWORD || "";
       if (seedPassword) {
         const { hash, salt } = await hashPassword(seedPassword);
-        staff = [{ id: crypto.randomUUID(), username: seedUsername, passwordHash: hash, passwordSalt: salt, allowedStages: "all" }];
-        await saveStaff(staff);
+        try {
+          await db.insertStaff({ id: crypto.randomUUID(), username: seedUsername, passwordHash: hash, passwordSalt: salt, allowedStages: "all" });
+        } catch {
+          // Two simultaneous first logins can race to seed; the loser's insert
+          // hits the unique username and can safely be ignored.
+        }
       }
     }
 
-    const user = staff.find((u) => u.username === username);
+    const user = await db.getStaffByUsername(username);
     if (!user || !(await verifyPassword(password, user.passwordSalt, user.passwordHash))) {
       return Response.json({ error: "Invalid username or password" }, { status: 401 });
     }
@@ -644,7 +548,7 @@ async function handleStaff(req: Request, id: string, session: any) {
   const publicShape = (u: any) => ({ id: u.id, username: u.username, allowedStages: u.allowedStages });
 
   if (req.method === "GET" && !id) {
-    return Response.json((await loadStaff()).map(publicShape));
+    return Response.json((await db.listStaff()).map(publicShape));
   }
 
   if (req.method === "POST" && !id) {
@@ -652,8 +556,7 @@ async function handleStaff(req: Request, id: string, session: any) {
     const username = String(body.username || "").trim();
     if (!username) return Response.json({ error: "username is required" }, { status: 400 });
     if (!body.password) return Response.json({ error: "password is required" }, { status: 400 });
-    const staff = await loadStaff();
-    if (staff.some((u) => u.username === username)) {
+    if (await db.getStaffByUsername(username)) {
       return Response.json({ error: "That username is already taken" }, { status: 409 });
     }
     const { hash, salt } = await hashPassword(String(body.password));
@@ -664,35 +567,30 @@ async function handleStaff(req: Request, id: string, session: any) {
       passwordSalt: salt,
       allowedStages: normalizeAllowedStages(body.allowedStages)
     };
-    staff.push(user);
-    await saveStaff(staff);
+    await db.insertStaff(user);
     await logEvent(session.username, "staff_created", { username: user.username });
     return Response.json(publicShape(user), { status: 201 });
   }
 
   if (req.method === "PATCH" && id) {
     const body = await req.json();
-    const staff = await loadStaff();
-    const user = staff.find((u) => u.id === id);
-    if (!user) return Response.json({ error: "not found" }, { status: 404 });
-    if (body.allowedStages !== undefined) user.allowedStages = normalizeAllowedStages(body.allowedStages);
+    const patch: any = {};
+    if (body.allowedStages !== undefined) patch.allowedStages = normalizeAllowedStages(body.allowedStages);
     if (body.password) {
       const { hash, salt } = await hashPassword(String(body.password));
-      user.passwordHash = hash;
-      user.passwordSalt = salt;
+      patch.passwordHash = hash;
+      patch.passwordSalt = salt;
     }
-    await saveStaff(staff);
+    const user = await db.updateStaff(id, patch);
+    if (!user) return Response.json({ error: "not found" }, { status: 404 });
     await logEvent(session.username, "staff_updated", { username: user.username });
     return Response.json(publicShape(user));
   }
 
   if (req.method === "DELETE" && id) {
-    const staff = await loadStaff();
-    const target = staff.find((u) => u.id === id);
-    const next = staff.filter((u) => u.id !== id);
-    if (next.length === staff.length) return Response.json({ error: "not found" }, { status: 404 });
-    await saveStaff(next);
-    await logEvent(session.username, "staff_deleted", { username: target?.username });
+    const target = await db.deleteStaff(id);
+    if (!target) return Response.json({ error: "not found" }, { status: 404 });
+    await logEvent(session.username, "staff_deleted", { username: target.username });
     return new Response(null, { status: 204 });
   }
 
@@ -703,7 +601,7 @@ async function handleExport(stage: string, session: any) {
   if (!ALL_STAGE_IDS.includes(stage)) return Response.json({ error: "not found" }, { status: 404 });
   if (!stageAllowed(session, stage)) return Response.json({ error: "forbidden" }, { status: 403 });
 
-  const [properties, portfolios] = await Promise.all([loadProperties(), loadPortfolios()]);
+  const [properties, portfolios] = await Promise.all([db.listProperties(), db.listPortfolios()]);
   const portfolioNames: Record<string, string> = {};
   for (const p of portfolios) portfolioNames[p.id] = p.name;
   const portfolioOf = (p: any) => (p.portfolioId && portfolioNames[p.portfolioId]) || "Unassigned";
@@ -796,16 +694,13 @@ async function handleExport(stage: string, session: any) {
 async function handlePing(req: Request, session: any) {
   const body = await req.json().catch(() => ({}));
   const stage = String(body.stage || "unknown");
-  const now = new Date().toISOString();
 
-  const presence = await loadPresence();
-  presence[session.username] = { lastSeen: now, path: stage };
-  await savePresence(presence);
-
-  const timeSpent = await loadTimeSpent();
-  timeSpent[session.username] = timeSpent[session.username] || {};
-  timeSpent[session.username][stage] = (timeSpent[session.username][stage] || 0) + HEARTBEAT_INTERVAL_SECONDS;
-  await saveTimeSpent(timeSpent);
+  // Two independent writes (presence row + an atomic increment), so
+  // simultaneous heartbeats from different users never overwrite each other.
+  await Promise.all([
+    db.upsertPresence(session.username, stage),
+    db.incrementTimeSpent(session.username, stage, HEARTBEAT_INTERVAL_SECONDS)
+  ]);
 
   if (body.initial) await logEvent(session.username, "page_view", { stage });
 
@@ -815,21 +710,14 @@ async function handlePing(req: Request, session: any) {
 async function handleActivityDashboard(session: any) {
   if (!isAdmin(session)) return Response.json({ error: "forbidden" }, { status: 403 });
 
-  const [presence, timeSpent, log] = await Promise.all([loadPresence(), loadTimeSpent(), loadActivityLog()]);
+  const [presence, timeSpentRows, feed] = await Promise.all([
+    db.listPresence(),
+    db.listTimeSpent(),
+    db.recentActivity(ACTIVITY_FEED_LIMIT)
+  ]);
 
   const now = Date.now();
-  const online = Object.entries(presence)
-    .filter(([, v]) => now - Date.parse(v.lastSeen) < ONLINE_THRESHOLD_MS)
-    .map(([username, v]) => ({ username, path: v.path, lastSeen: v.lastSeen }));
-
-  const timeSpentRows: any[] = [];
-  for (const [username, stages] of Object.entries(timeSpent)) {
-    for (const [stage, seconds] of Object.entries(stages)) {
-      timeSpentRows.push({ username, stage, seconds });
-    }
-  }
-
-  const feed = [...log].reverse().slice(0, 200);
+  const online = presence.filter((v) => now - Date.parse(v.lastSeen) < ONLINE_THRESHOLD_MS);
 
   return Response.json({ online, timeSpent: timeSpentRows, feed });
 }
