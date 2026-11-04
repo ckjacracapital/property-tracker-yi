@@ -47,6 +47,9 @@ const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 const HEARTBEAT_INTERVAL_SECONDS = 20;
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 const ACTIVITY_LOG_MAX = 500;
+const PROPERTY_UPDATE_EVENTS = new Set([
+  "property_created", "stage_completed", "stage_reopened", "status_changed", "offer_rejected", "offer_reopened"
+]);
 
 function propertiesStore() {
   return getStore("property-tracker");
@@ -459,11 +462,23 @@ async function handleProperties(req: Request, id: string, action: string, sessio
     const properties = await loadProperties();
     const property = properties.find((p) => p.id === id);
     if (!property) return Response.json({ error: "not found" }, { status: 404 });
+    const prevStatus = (property.acquisitions || {}).status || "";
+    const prevRejected = Boolean((property.offers || {}).rejected);
     applyUpdate(property, body);
     property.updatedAt = new Date().toISOString();
     await saveProperties(properties);
     const touchedGroups = Object.keys(body).filter((k) => STAGE_GROUPS.includes(k));
     await logEvent(session.username, "property_updated", { id: property.id, address: property.propertyAddress, groups: touchedGroups });
+
+    // Moves worth surfacing in the Activity "Property updates" area.
+    const newStatus = (property.acquisitions || {}).status || "";
+    if (newStatus && newStatus !== prevStatus) {
+      await logEvent(session.username, "status_changed", { id: property.id, address: property.propertyAddress, from: prevStatus, to: newStatus });
+    }
+    const nowRejected = Boolean((property.offers || {}).rejected);
+    if (nowRejected !== prevRejected) {
+      await logEvent(session.username, nowRejected ? "offer_rejected" : "offer_reopened", { id: property.id, address: property.propertyAddress });
+    }
     return Response.json(property);
   }
 
@@ -861,7 +876,11 @@ async function handleActivityDashboard(session: any) {
 
   const feed = [...log].reverse().slice(0, 200);
 
-  return Response.json({ online, timeSpent: timeSpentRows, feed });
+  // Property-only events (added / moved stage), kept separate so page-view
+  // noise in the general feed can't push them out of the 200-event window.
+  const propertyUpdates = [...log].reverse().filter((e) => PROPERTY_UPDATE_EVENTS.has(e.type)).slice(0, 100);
+
+  return Response.json({ online, timeSpent: timeSpentRows, feed, propertyUpdates });
 }
 
 export default async (req: Request, context: Context) => {
