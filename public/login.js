@@ -1,5 +1,6 @@
-const STAGE_ORDER = ['acquisitions', 'refurb', 'due_diligence', 'handed_over', 'inventory'];
+const STAGE_ORDER = ['offers', 'acquisitions', 'refurb', 'due_diligence', 'handed_over', 'inventory'];
 const STAGE_HREF = {
+  offers: 'offers.html',
   acquisitions: 'acquisitions.html',
   refurb: 'refurb.html',
   due_diligence: 'due-diligence.html',

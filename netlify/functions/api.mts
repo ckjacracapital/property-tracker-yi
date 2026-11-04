@@ -6,15 +6,15 @@ import { getStore } from "@netlify/blobs";
 // to Due Diligence and Inventory simultaneously (both just become visible,
 // no gate); Handed Over is reached only by an explicit manual action, never
 // automatically. None of the last three stages have an open/complete split.
-const STAGES = ["acquisitions", "refurb"];
+const STAGES = ["offers", "acquisitions", "refurb"];
 
 // All five pages, in canonical order (used to pick a restricted user's
 // landing page and to validate `allowedStages`).
-const ALL_STAGE_IDS = ["acquisitions", "refurb", "due_diligence", "handed_over", "inventory"];
+const ALL_STAGE_IDS = ["offers", "acquisitions", "refurb", "due_diligence", "handed_over", "inventory"];
 
 // Each stage keeps its own nested field group so a property's history from
 // earlier stages is preserved as it moves forward.
-const STAGE_GROUPS = ["acquisitions", "refurb", "dueDiligence", "handedOver", "inventory"];
+const STAGE_GROUPS = ["offers", "acquisitions", "refurb", "dueDiligence", "handedOver", "inventory"];
 const CORE_FIELDS = [
   "propertyAddress", "bedrooms", "portfolioId",
   "reachedDueDiligence", "reachedInventory", "reachedHandedOver"
@@ -23,6 +23,7 @@ const CORE_FIELDS = [
 // Maps a stage-group's storage key to the page/stage id it belongs to, so a
 // write touching that group can be checked against a session's allowedStages.
 const GROUP_TO_STAGE: Record<string, string> = {
+  offers: "offers",
   acquisitions: "acquisitions",
   refurb: "refurb",
   dueDiligence: "due_diligence",
@@ -254,6 +255,9 @@ function toCsv(headers: string[], rows: any[][]): string {
 }
 
 function isRelevantToStage(property: any, stageId: string): boolean {
+  // An accepted offer moves on to Acquisitions & Legals, so Offers only ever
+  // covers properties still at the offer stage (open or rejected).
+  if (stageId === "offers") return property.stage === "offers";
   if (stageId === "acquisitions") return property.stage === "acquisitions" || Boolean(property.stageHistory?.acquisitions);
   if (stageId === "refurb") return property.stage === "refurb";
   if (stageId === "due_diligence") return Boolean(property.reachedDueDiligence);
@@ -319,6 +323,7 @@ function startingState(startStage: string) {
     reachedInventory: false,
     reachedHandedOver: false
   };
+  if (startStage === "offers") state.stage = "offers";
   if (startStage === "refurb" || startStage === "due_diligence" || startStage === "handed_over" || startStage === "inventory") {
     state.stage = "refurb";
   }
@@ -343,6 +348,7 @@ function newProperty(body: any) {
     propertyAddress: "",
     bedrooms: "",
     portfolioId: null,
+    offers: {},
     acquisitions: {},
     refurb: {},
     dueDiligence: {},
@@ -466,6 +472,10 @@ async function handleProperties(req: Request, id: string, action: string, sessio
     const property = properties.find((p) => p.id === id);
     if (!property) return Response.json({ error: "not found" }, { status: 404 });
     if (!stageAllowed(session, property.stage)) return Response.json({ error: "forbidden" }, { status: 403 });
+    const completedStage = property.stage;
+    if (completedStage === "offers" && (property.offers || {}).rejected) {
+      return Response.json({ error: "This offer was rejected — reopen it before accepting" }, { status: 409 });
+    }
     const idx = STAGES.indexOf(property.stage);
     const now = new Date().toISOString();
     property.stageHistory[property.stage] = now;
@@ -477,9 +487,23 @@ async function handleProperties(req: Request, id: string, action: string, sessio
     } else if (idx < STAGES.length - 1) {
       property.stage = STAGES[idx + 1];
     }
+    if (completedStage === "offers") {
+      // Accepted offer -> Acquisitions & Legals: start the sales timeline at
+      // "Offer Accepted" and carry the offer price and agent across so they
+      // don't have to be typed again.
+      const offer = property.offers || {};
+      const acq = property.acquisitions || {};
+      if (!acq.status) {
+        acq.status = "Offer Accepted";
+        acq.statusHistory = [{ status: "Offer Accepted", enteredAt: now }];
+      }
+      if (offer.offerAmount && !acq.purchasePrice) acq.purchasePrice = offer.offerAmount;
+      if (offer.agentName && !acq.agentName) acq.agentName = offer.agentName;
+      property.acquisitions = acq;
+    }
     property.updatedAt = now;
     await saveProperties(properties);
-    await logEvent(session.username, "stage_completed", { id: property.id, address: property.propertyAddress, stage: idx === 0 ? "acquisitions" : "refurb" });
+    await logEvent(session.username, "stage_completed", { id: property.id, address: property.propertyAddress, stage: completedStage });
     return Response.json(property);
   }
 
@@ -712,7 +736,13 @@ async function handleExport(stage: string, session: any) {
   let headers: string[];
   let rows: any[][];
 
-  if (stage === "acquisitions") {
+  if (stage === "offers") {
+    headers = ["Portfolio", "Property Address", "Offer", "Agent", "Status", "Rejected Date"];
+    rows = relevant.map((p) => {
+      const g = p.offers || {};
+      return [portfolioOf(p), p.propertyAddress, g.offerAmount, g.agentName, g.rejected ? "Rejected" : "Open", g.rejectedAt || ""];
+    });
+  } else if (stage === "acquisitions") {
     headers = [
       "Portfolio", "Property Address", "Bedrooms", "Status", "Pictures", "Floorplan", "Refurb Required",
       "Numbers Confirmed", "Priority", "Agent Name", "Agent Phone", "Agent Email", "Property Usage", "Targeted Rent",

@@ -18,6 +18,7 @@ const PUBLIC_PATHS = new Set([
 ]);
 
 const PAGE_STAGE: Record<string, string> = {
+  "/offers.html": "offers",
   "/acquisitions.html": "acquisitions",
   "/timing.html": "acquisitions",
   "/refurb.html": "refurb",
@@ -27,8 +28,9 @@ const PAGE_STAGE: Record<string, string> = {
   "/inventory.html": "inventory"
 };
 
-const STAGE_ORDER = ["acquisitions", "refurb", "due_diligence", "handed_over", "inventory"];
+const STAGE_ORDER = ["offers", "acquisitions", "refurb", "due_diligence", "handed_over", "inventory"];
 const STAGE_HREF: Record<string, string> = {
+  offers: "/offers.html",
   acquisitions: "/acquisitions.html",
   refurb: "/refurb.html",
   due_diligence: "/due-diligence.html",

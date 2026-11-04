@@ -1380,3 +1380,19 @@ body.login-page {
   .detail-modal { width: 100%; }
   .acq-stats-full { grid-template-columns: 1fr; }
 }
+
+/* Offers page: "Accepted" tickbox in each row, and dimmed rejected offers */
+.accept-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--jacra-navy);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.accept-check input { width: 16px; height: 16px; margin: 0; cursor: pointer; }
+
+.card.rejected-card { opacity: 0.75; }
