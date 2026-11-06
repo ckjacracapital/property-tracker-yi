@@ -179,12 +179,19 @@ function renderFlatPortfolioSections(panelsEl, items, portfolios, cardRenderer) 
 
 const PORTFOLIO_FILTER_KEY = 'jacra.portfolioFilter';
 
+// Held in memory as well as localStorage: if the browser refuses to store
+// anything (private windows, strict privacy settings) the filter still works
+// for as long as the page is open instead of silently doing nothing.
+let portfolioFilterMemory = null;
+
 function currentPortfolioFilter() {
+  if (portfolioFilterMemory !== null) return portfolioFilterMemory;
   try { return localStorage.getItem(PORTFOLIO_FILTER_KEY) || ''; } catch { return ''; }
 }
 
 function setPortfolioFilter(value) {
-  try { localStorage.setItem(PORTFOLIO_FILTER_KEY, value); } catch { /* filter just won't persist */ }
+  portfolioFilterMemory = value;
+  try { localStorage.setItem(PORTFOLIO_FILTER_KEY, value); } catch { /* just won't persist across pages */ }
 }
 
 // '' = all portfolios, 'none' = unassigned, otherwise a portfolio id.
@@ -216,9 +223,19 @@ function sideLink(label, href, active, count) {
   return a;
 }
 
-function renderSidebarFilter(wrap) {
-  // Pages that list properties redraw in place; the rest just reload.
-  const notify = () => (typeof window.onFilterChanged === 'function' ? window.onFilterChanged() : window.location.reload());
+// The filter sits at the top of each page's content (not in the sidebar).
+// Only pages whose lists respond to it define window.onFilterChanged.
+function renderPortfolioFilterBar() {
+  const main = document.querySelector('main');
+  if (!main || typeof window.onFilterChanged !== 'function') return;
+
+  const old = document.getElementById('portfolio-filter-bar');
+  if (old) old.remove();
+  const bar = document.createElement('div');
+  bar.id = 'portfolio-filter-bar';
+  bar.className = 'portfolio-filter-bar';
+  main.insertBefore(bar, main.firstChild);
+
   fetchPortfolios().then((list) => {
     const portfolios = list || [];
     let current = currentPortfolioFilter();
@@ -226,24 +243,27 @@ function renderSidebarFilter(wrap) {
       // The saved portfolio was deleted — fall back to everything.
       current = '';
       setPortfolioFilter('');
-      notify();
+      window.onFilterChanged();
+      return;
     }
-    wrap.innerHTML = '';
-    wrap.appendChild(sideHeading('Filter by portfolio'));
+    const label = document.createElement('span');
+    label.className = 'pfb-label';
+    label.textContent = 'Filter by portfolio';
+    bar.appendChild(label);
     const options = [{ value: '', label: 'All portfolios' }]
       .concat(portfolios.map((p) => ({ value: p.id, label: p.name })))
       .concat([{ value: 'none', label: 'Unassigned' }]);
     for (const opt of options) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'side-filter-item' + (opt.value === current ? ' active' : '');
+      btn.className = 'pfb-chip' + (opt.value === current ? ' active' : '');
       btn.textContent = opt.label;
       btn.onclick = () => {
         if (opt.value === currentPortfolioFilter()) return;
         setPortfolioFilter(opt.value);
-        notify();
+        window.onFilterChanged();
       };
-      wrap.appendChild(btn);
+      bar.appendChild(btn);
     }
   }).catch(() => {});
 }
@@ -272,9 +292,7 @@ function renderNav(properties) {
     for (const [label, href] of tools) tabsEl.appendChild(sideLink(label, href, here === href));
   }
 
-  const filterWrap = document.createElement('div');
-  tabsEl.appendChild(filterWrap);
-  renderSidebarFilter(filterWrap);
+  renderPortfolioFilterBar();
 }
 
 async function refreshNav() {

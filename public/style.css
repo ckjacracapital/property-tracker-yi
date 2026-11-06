@@ -188,23 +188,39 @@ body:has(> nav.tabs) > main { grid-area: main; min-width: 0; margin: 0 auto; wid
 
 .tab-btn.active .tab-count { background: #fff; }
 
-button.side-filter-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: none;
-  box-shadow: none;
-  border-radius: 6px;
-  padding: 7px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #565c66;
+.portfolio-filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
 }
 
-button.side-filter-item:hover { background: var(--bg); filter: none; }
+.pfb-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--jacra-grey);
+  margin-right: 6px;
+}
 
-button.side-filter-item.active {
+button.pfb-chip {
+  background: #fff;
+  color: #565c66;
+  border: 1px solid var(--border);
+  box-shadow: none;
+  border-radius: 16px;
+  padding: 5px 13px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+button.pfb-chip:hover { background: var(--bg); filter: none; }
+
+button.pfb-chip.active {
   background: var(--jacra-navy);
+  border-color: var(--jacra-navy);
   color: #fff;
   font-weight: 600;
 }
@@ -1436,7 +1452,6 @@ body.login-page {
     padding: 8px 12px;
   }
   .side-heading { width: 100%; padding: 8px 4px 2px; }
-  button.side-filter-item { width: auto; }
 }
 
 @media (max-width: 700px) {
