@@ -3,21 +3,20 @@ import { getStore } from "@netlify/blobs";
 
 // Only Acquisitions and Refurb are a strict "one active stage at a time"
 // pipeline with an open/complete gate. Completing Refurb fans a property out
-// to Due Diligence and Inventory simultaneously (both just become visible,
-// no gate); Handed Over is reached only by an explicit manual action, never
+// to Due Diligence (which becomes visible, no gate); Handed Over is reached only by an explicit manual action, never
 // automatically. None of the last three stages have an open/complete split.
 const STAGES = ["offers", "acquisitions", "refurb"];
 
 // All five pages, in canonical order (used to pick a restricted user's
 // landing page and to validate `allowedStages`).
-const ALL_STAGE_IDS = ["offers", "acquisitions", "refurb", "due_diligence", "handed_over", "inventory"];
+const ALL_STAGE_IDS = ["offers", "acquisitions", "refurb", "due_diligence", "handed_over"];
 
 // Each stage keeps its own nested field group so a property's history from
 // earlier stages is preserved as it moves forward.
-const STAGE_GROUPS = ["offers", "acquisitions", "refurb", "dueDiligence", "handedOver", "inventory"];
+const STAGE_GROUPS = ["offers", "acquisitions", "refurb", "dueDiligence", "handedOver"];
 const CORE_FIELDS = [
   "propertyAddress", "bedrooms", "portfolioId",
-  "reachedDueDiligence", "reachedInventory", "reachedHandedOver"
+  "reachedDueDiligence", "reachedHandedOver"
 ];
 
 // Maps a stage-group's storage key to the page/stage id it belongs to, so a
@@ -27,12 +26,10 @@ const GROUP_TO_STAGE: Record<string, string> = {
   acquisitions: "acquisitions",
   refurb: "refurb",
   dueDiligence: "due_diligence",
-  handedOver: "handed_over",
-  inventory: "inventory"
+  handedOver: "handed_over"
 };
 const FLAG_TO_STAGE: Record<string, string> = {
   reachedDueDiligence: "due_diligence",
-  reachedInventory: "inventory",
   reachedHandedOver: "handed_over"
 };
 
@@ -265,7 +262,6 @@ function isRelevantToStage(property: any, stageId: string): boolean {
   if (stageId === "refurb") return property.stage === "refurb";
   if (stageId === "due_diligence") return Boolean(property.reachedDueDiligence);
   if (stageId === "handed_over") return Boolean(property.reachedHandedOver);
-  if (stageId === "inventory") return Boolean(property.reachedInventory);
   return false;
 }
 
@@ -323,17 +319,15 @@ function startingState(startStage: string) {
     stage: "acquisitions",
     stageHistory: {},
     reachedDueDiligence: false,
-    reachedInventory: false,
     reachedHandedOver: false
   };
   if (startStage === "offers") state.stage = "offers";
-  if (startStage === "refurb" || startStage === "due_diligence" || startStage === "handed_over" || startStage === "inventory") {
+  if (startStage === "refurb" || startStage === "due_diligence" || startStage === "handed_over") {
     state.stage = "refurb";
   }
-  if (startStage === "due_diligence" || startStage === "handed_over" || startStage === "inventory") {
+  if (startStage === "due_diligence" || startStage === "handed_over") {
     state.stageHistory.refurb = now;
     state.reachedDueDiligence = true;
-    state.reachedInventory = true;
   }
   if (startStage === "handed_over") {
     state.reachedHandedOver = true;
@@ -355,8 +349,7 @@ function newProperty(body: any) {
     acquisitions: {},
     refurb: {},
     dueDiligence: {},
-    handedOver: {},
-    inventory: {}
+    handedOver: {}
   };
   applyUpdate(property, body);
   return property;
@@ -495,10 +488,9 @@ async function handleProperties(req: Request, id: string, action: string, sessio
     const now = new Date().toISOString();
     property.stageHistory[property.stage] = now;
     if (property.stage === "refurb") {
-      // Refurb fans out to both Due Diligence and Inventory at once; neither
-      // has its own open/complete gate, so there's no further "stage" to move to.
+      // Completing Refurb makes the property visible in Due Diligence, which
+      // has no open/complete gate, so there's no further "stage" to move to.
       property.reachedDueDiligence = true;
-      property.reachedInventory = true;
     } else if (idx < STAGES.length - 1) {
       property.stage = STAGES[idx + 1];
     }
@@ -530,7 +522,6 @@ async function handleProperties(req: Request, id: string, action: string, sessio
     if (property.stageHistory[property.stage]) {
       if (property.stage === "refurb") {
         property.reachedDueDiligence = false;
-        property.reachedInventory = false;
       }
       delete property.stageHistory[property.stage];
     } else {
@@ -817,11 +808,7 @@ async function handleExport(stage: string, session: any) {
       return [portfolioOf(p), p.propertyAddress, p.bedrooms, g.dateOfHandover, g.handoverStatus, g.notes];
     });
   } else {
-    headers = ["Portfolio", "Property Address", "Notes"];
-    rows = relevant.map((p) => {
-      const g = p.inventory || {};
-      return [portfolioOf(p), p.propertyAddress, g.notes];
-    });
+    return Response.json({ error: "not found" }, { status: 404 });
   }
 
   await logEvent(session.username, "export", { stage, rowCount: rows.length });

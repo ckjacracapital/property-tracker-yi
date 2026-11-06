@@ -1,11 +1,10 @@
-const STAGE_ORDER = ['offers', 'acquisitions', 'refurb', 'due_diligence', 'handed_over', 'inventory'];
+const STAGE_ORDER = ['offers', 'acquisitions', 'refurb', 'due_diligence', 'handed_over'];
 const STAGE_HREF = {
   offers: 'offers.html',
   acquisitions: 'acquisitions.html',
   refurb: 'refurb.html',
   due_diligence: 'due-diligence.html',
-  handed_over: 'handed-over.html',
-  inventory: 'inventory.html'
+  handed_over: 'handed-over.html'
 };
 
 function firstAllowedHref(allowedStages) {

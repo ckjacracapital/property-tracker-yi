@@ -132,7 +132,7 @@ function renderCard(p, completed) {
     actions.appendChild(reopenBtn);
   } else {
     const completeBtn = document.createElement('button');
-    completeBtn.textContent = 'Complete → Due Diligence & Inventory';
+    completeBtn.textContent = 'Complete → Due Diligence';
     completeBtn.onclick = () => completeStage(p.id);
     actions.appendChild(completeBtn);
 

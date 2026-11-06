@@ -24,18 +24,16 @@ const PAGE_STAGE: Record<string, string> = {
   "/refurb.html": "refurb",
   "/due-diligence.html": "due_diligence",
   "/due-diligence-detail.html": "due_diligence",
-  "/handed-over.html": "handed_over",
-  "/inventory.html": "inventory"
+  "/handed-over.html": "handed_over"
 };
 
-const STAGE_ORDER = ["offers", "acquisitions", "refurb", "due_diligence", "handed_over", "inventory"];
+const STAGE_ORDER = ["offers", "acquisitions", "refurb", "due_diligence", "handed_over"];
 const STAGE_HREF: Record<string, string> = {
   offers: "/offers.html",
   acquisitions: "/acquisitions.html",
   refurb: "/refurb.html",
   due_diligence: "/due-diligence.html",
-  handed_over: "/handed-over.html",
-  inventory: "/inventory.html"
+  handed_over: "/handed-over.html"
 };
 
 function firstAllowedHref(allowedStages: string | string[]): string {

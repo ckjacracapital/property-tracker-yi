@@ -131,7 +131,7 @@ loadAll();
 const NEXT_STAGE_LABEL = {
   offers: 'Acquisitions & Legals',
   acquisitions: 'Refurb & Payment',
-  refurb: 'Due Diligence & Inventory'
+  refurb: 'Due Diligence'
 };
 
 function describeUpdate(e) {
