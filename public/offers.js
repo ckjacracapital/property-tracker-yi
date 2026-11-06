@@ -18,6 +18,7 @@ async function loadAll() {
 }
 
 window.onPortfoliosChanged = loadAll;
+window.onFilterChanged = () => { renderNav(properties); render(); };
 
 // An accepted offer moves on to Acquisitions & Legals, so this page only ever
 // holds offers still at the offer stage: open ones, and rejected ones (shown
@@ -30,7 +31,7 @@ function render() {
   const panelsEl = document.getElementById('panels');
   panelsEl.innerHTML = '';
 
-  const atOfferStage = properties.filter((p) => isActiveIn(p, STAGE));
+  const atOfferStage = filterByPortfolio(properties).filter((p) => isActiveIn(p, STAGE));
   const openOffers = atOfferStage.filter((p) => !isRejected(p));
   const rejectedOffers = atOfferStage.filter(isRejected);
 

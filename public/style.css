@@ -113,32 +113,68 @@ header button.secondary:hover, header #logout-btn:hover {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.tabs {
-  display: flex;
-  gap: 4px;
-  padding: 0 28px;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
+/* Left-hand sidebar: sections, tools and the portfolio filter. Pages that
+   have a <nav class="tabs"> become a two-column layout (header across the top,
+   sidebar left, content right); it collapses back to a top bar on phones. */
+body:has(> nav.tabs) {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas: "header header" "nav main";
+  min-height: 100vh;
 }
 
+body:has(> nav.tabs) > header { grid-area: header; }
+body:has(> nav.tabs) > nav.tabs { grid-area: nav; }
+body:has(> nav.tabs) > main { grid-area: main; min-width: 0; margin: 0 auto; width: 100%; }
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 18px 12px 24px;
+  background: #fff;
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.side-heading {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--jacra-grey);
+  padding: 14px 12px 6px;
+}
+
+.side-heading:first-child { padding-top: 2px; }
+
 .tab-btn {
-  background: none;
-  color: #8a8f98;
-  border: none;
-  border-radius: 0;
-  padding: 15px 18px;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #565c66;
+  padding: 9px 12px;
+  font-size: 13.5px;
   font-weight: 500;
-  border-bottom: 2px solid transparent;
   text-decoration: none;
-  display: inline-block;
+  border-radius: 6px;
+  box-shadow: inset 3px 0 0 transparent;
   cursor: pointer;
 }
 
+.tab-btn:hover { background: var(--bg); }
+
 .tab-btn.active {
+  background: var(--bg);
   color: var(--jacra-navy);
-  border-bottom-color: var(--jacra-navy);
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--jacra-chartreuse);
 }
 
 .tab-btn .tab-count {
@@ -147,7 +183,29 @@ header button.secondary:hover, header #logout-btn:hover {
   border-radius: 10px;
   padding: 1px 7px;
   font-size: 11px;
-  margin-left: 6px;
+  font-weight: 600;
+}
+
+.tab-btn.active .tab-count { background: #fff; }
+
+button.side-filter-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  box-shadow: none;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #565c66;
+}
+
+button.side-filter-item:hover { background: var(--bg); filter: none; }
+
+button.side-filter-item.active {
+  background: var(--jacra-navy);
+  color: #fff;
   font-weight: 600;
 }
 
@@ -1360,6 +1418,25 @@ body.login-page {
 .timeline-step:not(.active):not(.done) .timeline-label {
   color: var(--muted);
   font-weight: 500;
+}
+
+@media (max-width: 800px) {
+  body:has(> nav.tabs) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "header" "nav" "main";
+    grid-template-rows: auto auto 1fr;
+  }
+  .tabs {
+    flex-direction: row;
+    flex-wrap: wrap;
+    position: static;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 12px;
+  }
+  .side-heading { width: 100%; padding: 8px 4px 2px; }
+  button.side-filter-item { width: auto; }
 }
 
 @media (max-width: 700px) {

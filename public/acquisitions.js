@@ -42,13 +42,15 @@ async function loadAll() {
 }
 
 window.onPortfoliosChanged = loadAll;
+window.onFilterChanged = () => { renderNav(properties); render(); };
 
 function render() {
   const panelsEl = document.getElementById('panels');
   panelsEl.innerHTML = '';
 
-  const activeItems = properties.filter((p) => isActiveIn(p, STAGE));
-  const completedItems = properties.filter((p) => isCompletedIn(p, STAGE));
+  const visible = filterByPortfolio(properties);
+  const activeItems = visible.filter((p) => isActiveIn(p, STAGE));
+  const completedItems = visible.filter((p) => isCompletedIn(p, STAGE));
 
   panelsEl.appendChild(renderMasthead());
   panelsEl.appendChild(renderToolbar(completedItems));

@@ -175,20 +175,106 @@ function renderFlatPortfolioSections(panelsEl, items, portfolios, cardRenderer) 
   }
 }
 
+// --- Portfolio filter (lives in the sidebar, applies to every page's lists) ---
+
+const PORTFOLIO_FILTER_KEY = 'jacra.portfolioFilter';
+
+function currentPortfolioFilter() {
+  try { return localStorage.getItem(PORTFOLIO_FILTER_KEY) || ''; } catch { return ''; }
+}
+
+function setPortfolioFilter(value) {
+  try { localStorage.setItem(PORTFOLIO_FILTER_KEY, value); } catch { /* filter just won't persist */ }
+}
+
+// '' = all portfolios, 'none' = unassigned, otherwise a portfolio id.
+function filterByPortfolio(list) {
+  const f = currentPortfolioFilter();
+  if (!f) return list;
+  if (f === 'none') return list.filter((p) => !p.portfolioId);
+  return list.filter((p) => p.portfolioId === f);
+}
+
+function sideHeading(text) {
+  const el = document.createElement('div');
+  el.className = 'side-heading';
+  el.textContent = text;
+  return el;
+}
+
+function sideLink(label, href, active, count) {
+  const a = document.createElement('a');
+  a.className = 'tab-btn' + (active ? ' active' : '');
+  a.href = href;
+  a.appendChild(document.createTextNode(label));
+  if (count !== undefined) {
+    const span = document.createElement('span');
+    span.className = 'tab-count';
+    span.textContent = count;
+    a.appendChild(span);
+  }
+  return a;
+}
+
+function renderSidebarFilter(wrap) {
+  // Pages that list properties redraw in place; the rest just reload.
+  const notify = () => (typeof window.onFilterChanged === 'function' ? window.onFilterChanged() : window.location.reload());
+  fetchPortfolios().then((list) => {
+    const portfolios = list || [];
+    let current = currentPortfolioFilter();
+    if (current && current !== 'none' && !portfolios.some((p) => p.id === current)) {
+      // The saved portfolio was deleted — fall back to everything.
+      current = '';
+      setPortfolioFilter('');
+      notify();
+    }
+    wrap.innerHTML = '';
+    wrap.appendChild(sideHeading('Filter by portfolio'));
+    const options = [{ value: '', label: 'All portfolios' }]
+      .concat(portfolios.map((p) => ({ value: p.id, label: p.name })))
+      .concat([{ value: 'none', label: 'Unassigned' }]);
+    for (const opt of options) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'side-filter-item' + (opt.value === current ? ' active' : '');
+      btn.textContent = opt.label;
+      btn.onclick = () => {
+        if (opt.value === currentPortfolioFilter()) return;
+        setPortfolioFilter(opt.value);
+        notify();
+      };
+      wrap.appendChild(btn);
+    }
+  }).catch(() => {});
+}
+
 function renderNav(properties) {
   const tabsEl = document.getElementById('tabs');
   if (!tabsEl) return;
   const currentStage = document.body.dataset.stage;
+  const onToolPage = Boolean(document.body.dataset.pageId);
+  const here = window.location.pathname.split('/').pop();
+  const visible = filterByPortfolio(properties || []);
   tabsEl.innerHTML = '';
-  const visibleStages = STAGE_META.filter((stage) => stageAllowedForCurrentUser(stage.id));
-  for (const stage of visibleStages) {
-    const count = stage.count(properties);
-    const a = document.createElement('a');
-    a.className = 'tab-btn' + (stage.id === currentStage ? ' active' : '');
-    a.href = stage.href;
-    a.innerHTML = `${stage.label}<span class="tab-count">${count}</span>`;
-    tabsEl.appendChild(a);
+
+  tabsEl.appendChild(sideHeading('Sections'));
+  for (const stage of STAGE_META.filter((s) => stageAllowedForCurrentUser(s.id))) {
+    tabsEl.appendChild(sideLink(stage.label, stage.href, !onToolPage && stage.id === currentStage, stage.count(visible)));
   }
+
+  const tools = [];
+  if (stageAllowedForCurrentUser('acquisitions')) tools.push(['Stage Timing', 'timing.html']);
+  if (currentUser && currentUser.allowedStages === 'all') {
+    tools.push(['Activity', 'activity.html'], ['Manage staff', 'staff.html']);
+  }
+  if (tools.length) {
+    tabsEl.appendChild(sideHeading('Tools'));
+    for (const [label, href] of tools) tabsEl.appendChild(sideLink(label, href, here === href));
+  }
+
+  const filterWrap = document.createElement('div');
+  tabsEl.appendChild(filterWrap);
+  renderSidebarFilter(filterWrap);
 }
 
 async function refreshNav() {

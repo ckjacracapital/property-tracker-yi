@@ -14,10 +14,11 @@ async function loadAll() {
 }
 
 window.onPortfoliosChanged = loadAll;
+window.onFilterChanged = () => { renderNav(properties); render(); };
 
 function render() {
   const panelsEl = document.getElementById('panels');
-  const items = properties.filter((p) => p.reachedDueDiligence);
+  const items = filterByPortfolio(properties).filter((p) => p.reachedDueDiligence);
   renderFlatPortfolioSections(panelsEl, items, portfolios, renderCard);
 }
 

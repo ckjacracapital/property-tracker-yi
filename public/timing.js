@@ -37,6 +37,7 @@ async function loadAll() {
 }
 
 window.onPortfoliosChanged = loadAll;
+window.onFilterChanged = () => fetchProperties().then((props) => { renderNav(props); render(props); });
 
 // Turns every property's statusHistory into a flat list of per-stage
 // durations (gap to the next entry, or to now for whichever stage is
@@ -78,7 +79,8 @@ function average(arr) {
   return arr.reduce((sum, v) => sum + v, 0) / arr.length;
 }
 
-function render(properties) {
+function render(allProperties) {
+  const properties = filterByPortfolio(allProperties);
   document.getElementById('timing-as-of').textContent = formatDateTime(new Date().toISOString());
 
   const { byStage, currentWaits, cycleTimes, trackedCount } = computeStageDurations(properties);

@@ -64,6 +64,7 @@ async function loadAll() {
 }
 
 window.onPortfoliosChanged = () => fetchProperties().then(renderNav);
+window.onFilterChanged = () => fetchProperties().then((props) => { renderNav(props); renderNeedsData(props); });
 
 async function refreshActivity() {
   const data = await fetchJSON('/api/activity');
@@ -228,7 +229,8 @@ function hasValue(v) {
   return !(v === undefined || v === null || v === '' || v === false);
 }
 
-function renderNeedsData(properties) {
+function renderNeedsData(allProperties) {
+  const properties = filterByPortfolio(allProperties);
   const rows = [];
   for (const check of ESSENTIAL_CHECKS) {
     for (const p of properties) {
