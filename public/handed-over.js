@@ -131,4 +131,5 @@ propertyForm.addEventListener('submit', async (e) => {
   loadAll();
 });
 
+startAutoRefresh(loadAll);
 loadAll();

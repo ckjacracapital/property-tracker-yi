@@ -16,8 +16,70 @@ async function fetchJSON(url, opts) {
   return res.json();
 }
 
-function fetchProperties() {
-  return fetchJSON('/api/properties');
+// The storage backend can take a few seconds to reflect a write it has already
+// accepted, so a re-fetch straight after saving can come back without the
+// change (a new property missing, an edit reverted). To hide that, every
+// property write that succeeds is remembered for a short while, and
+// fetchProperties() lays those writes over whatever the server returns until
+// the server has caught up. Writes are spotted by wrapping fetch, so no page
+// needs to know about it.
+const WRITE_GRACE_MS = 20000;
+const recentWrites = new Map(); // property id -> { property } | { deleted: true }, plus `at`
+
+const nativeFetch = window.fetch.bind(window);
+window.fetch = async function (input, init) {
+  const res = await nativeFetch(input, init);
+  try {
+    const url = typeof input === 'string' ? input : input.url;
+    const method = ((init && init.method) || 'GET').toUpperCase();
+    const m = url.match(/^\/api\/properties(?:\/([^/?]+))?(?:\/(complete|reopen))?$/);
+    if (m && method !== 'GET' && res.ok) {
+      const id = m[1];
+      if (method === 'DELETE' && id) {
+        recentWrites.set(id, { deleted: true, at: Date.now() });
+      } else if (res.status !== 204 && id !== 'bulk-delete' && id !== 'bulk-import') {
+        const property = await res.clone().json();
+        if (property && property.id) recentWrites.set(property.id, { property, at: Date.now() });
+      }
+    }
+  } catch { /* bookkeeping only — never break the real request */ }
+  return res;
+};
+
+function reconcileProperties(list) {
+  const now = Date.now();
+  for (const [id, w] of recentWrites) if (now - w.at > WRITE_GRACE_MS) recentWrites.delete(id);
+  if (recentWrites.size === 0) return list;
+  const byId = new Map(list.map((p) => [p.id, p]));
+  for (const [id, w] of recentWrites) {
+    if (w.deleted) { byId.delete(id); continue; }
+    const fetched = byId.get(id);
+    const fetchedAt = fetched ? Date.parse(fetched.updatedAt || 0) : -1;
+    if (!fetched || fetchedAt < Date.parse(w.property.updatedAt || 0)) byId.set(id, w.property);
+  }
+  return Array.from(byId.values());
+}
+
+async function fetchProperties() {
+  const list = await fetchJSON('/api/properties');
+  return Array.isArray(list) ? reconcileProperties(list) : list;
+}
+
+// Pages call this once so lists keep themselves current (other people's
+// changes, or anything the storage was slow to show) without a manual refresh.
+// It skips while the tab is hidden or a popup is open, so it never yanks a form
+// out from under someone.
+let autoRefreshStarted = false;
+function startAutoRefresh(refreshFn, intervalMs = 15000) {
+  if (autoRefreshStarted) return;
+  autoRefreshStarted = true;
+  const tick = () => {
+    if (document.hidden) return;
+    if (document.querySelector('[id$="modal-backdrop"]:not(.hidden)')) return;
+    refreshFn();
+  };
+  setInterval(tick, intervalMs);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
 }
 
 function fetchPortfolios() {
@@ -103,7 +165,12 @@ async function initAuth() {
 // Pings the server every 20s while this page is visible so the admin
 // Activity dashboard can show who's online and how long they've spent on
 // each page. The first ping (initial:true) also logs a page-view event.
+let activityPingStarted = false;
 function startActivityPing(stage) {
+  // initAuth() runs again on every page refresh — start the timer only once,
+  // otherwise each refresh stacks another one and inflates time-spent figures.
+  if (activityPingStarted) return;
+  activityPingStarted = true;
   let first = true;
   const ping = () => {
     if (document.hidden) return;

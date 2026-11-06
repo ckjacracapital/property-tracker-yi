@@ -90,4 +90,5 @@ propertyForm.addEventListener('submit', async (e) => {
   window.location.href = `due-diligence-detail.html?id=${property.id}`;
 });
 
+startAutoRefresh(loadAll);
 loadAll();

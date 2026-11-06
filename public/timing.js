@@ -129,4 +129,5 @@ function render(allProperties) {
   document.getElementById('timing-empty-hint').style.display = anyData ? 'none' : '';
 }
 
+startAutoRefresh(loadAll);
 loadAll();
