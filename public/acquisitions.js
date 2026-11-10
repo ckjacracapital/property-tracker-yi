@@ -71,7 +71,7 @@ function renderMasthead() {
   title.textContent = 'Acquisitions Register';
   const sub = document.createElement('p');
   sub.className = 'acq-reg-subtitle';
-  sub.textContent = 'Acquisitions & Legals — sourcing through completion';
+  sub.textContent = 'Acquisitions — sourcing through completion';
   left.appendChild(title);
   left.appendChild(sub);
 

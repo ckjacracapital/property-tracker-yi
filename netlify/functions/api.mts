@@ -255,7 +255,7 @@ function toCsv(headers: string[], rows: any[][]): string {
 }
 
 function isRelevantToStage(property: any, stageId: string): boolean {
-  // An accepted offer moves on to Acquisitions & Legals, so Offers only ever
+  // An accepted offer moves on to Acquisitions, so Offers only ever
   // covers properties still at the offer stage (open or rejected).
   if (stageId === "offers") return property.stage === "offers";
   if (stageId === "acquisitions") return property.stage === "acquisitions" || Boolean(property.stageHistory?.acquisitions);
@@ -495,7 +495,7 @@ async function handleProperties(req: Request, id: string, action: string, sessio
       property.stage = STAGES[idx + 1];
     }
     if (completedStage === "offers") {
-      // Accepted offer -> Acquisitions & Legals: start the sales timeline at
+      // Accepted offer -> Acquisitions: start the sales timeline at
       // "Offer Accepted" and carry the offer price and agent across so they
       // don't have to be typed again.
       const offer = property.offers || {};

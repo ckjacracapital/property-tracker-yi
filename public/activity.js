@@ -130,7 +130,7 @@ loadAll();
 // --- Property updates: properties added, and moves between stages ---
 
 const NEXT_STAGE_LABEL = {
-  offers: 'Acquisitions & Legals',
+  offers: 'Acquisitions',
   acquisitions: 'Refurb & Payment',
   refurb: 'Due Diligence'
 };

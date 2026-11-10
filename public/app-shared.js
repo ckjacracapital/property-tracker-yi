@@ -4,7 +4,7 @@
 // hasn't — so their count is just how many have the flag set.
 const STAGE_META = [
   { id: 'offers', label: 'Offers', href: 'offers.html', count: (props) => props.filter((p) => isActiveIn(p, 'offers') && !(p.offers && p.offers.rejected)).length },
-  { id: 'acquisitions', label: 'Acquisitions & Legals', href: 'acquisitions.html', count: (props) => props.filter((p) => isActiveIn(p, 'acquisitions')).length },
+  { id: 'acquisitions', label: 'Acquisitions', href: 'acquisitions.html', count: (props) => props.filter((p) => isActiveIn(p, 'acquisitions')).length },
   { id: 'refurb', label: 'Refurb & Payment', href: 'refurb.html', count: (props) => props.filter((p) => isActiveIn(p, 'refurb')).length },
   { id: 'due_diligence', label: 'Due Diligence', href: 'due-diligence.html', count: (props) => props.filter((p) => p.reachedDueDiligence).length },
   { id: 'handed_over', label: 'Handed Over', href: 'handed-over.html', count: (props) => props.filter((p) => p.reachedHandedOver).length }

@@ -20,7 +20,7 @@ async function loadAll() {
 window.onPortfoliosChanged = loadAll;
 window.onFilterChanged = () => { renderNav(properties); render(); };
 
-// An accepted offer moves on to Acquisitions & Legals, so this page only ever
+// An accepted offer moves on to Acquisitions, so this page only ever
 // holds offers still at the offer stage: open ones, and rejected ones (shown
 // in their own section below).
 function isRejected(p) {
@@ -99,14 +99,14 @@ function renderCard(p, rejected) {
     reopenBtn.onclick = () => setRejected(p.id, false);
     actions.appendChild(reopenBtn);
   } else {
-    // Ticking "Accepted" moves the property on to Acquisitions & Legals.
+    // Ticking "Accepted" moves the property on to Acquisitions.
     const acceptLabel = document.createElement('label');
     acceptLabel.className = 'accept-check';
     const box = document.createElement('input');
     box.type = 'checkbox';
     box.onchange = () => {
       if (!box.checked) return;
-      if (confirm(`Offer accepted on ${p.propertyAddress || 'this property'}?\n\nIt will move to Acquisitions & Legals.`)) {
+      if (confirm(`Offer accepted on ${p.propertyAddress || 'this property'}?\n\nIt will move to Acquisitions.`)) {
         acceptOffer(p.id);
       } else {
         box.checked = false;
